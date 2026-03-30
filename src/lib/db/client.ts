@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 import 'dotenv/config';
 
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
-const DB_PATH = join(DATA_DIR, 'ausfuel.sqlite');
+const DB_PATH = join(DATA_DIR, 'fuelnsw.sqlite');
 
 let db: Database.Database;
 

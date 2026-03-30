@@ -10,7 +10,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>AusFuel — NSW Fuel Price Tracker</title>
+	<title>FuelNSW — NSW Fuel Price Tracker</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 flex flex-col">
@@ -22,7 +22,7 @@
 					<div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M3 22V6l4-2v18H3zm6 0V8l4 2v12H9zm6 0V4l4 4v14h-4z"/></svg>
 					</div>
-					<span class="font-bold text-lg text-gray-900">AusFuel</span>
+					<span class="font-bold text-lg text-gray-900">FuelNSW</span>
 				</a>
 				<div class="flex items-center gap-1">
 					<a
