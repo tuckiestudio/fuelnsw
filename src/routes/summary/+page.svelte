@@ -178,6 +178,11 @@
 	}
 </script>
 
+<svelte:head>
+	<title>FuelNSW — Price Summary &amp; Availability</title>
+	<meta name="description" content="NSW fuel price summary with average prices, historical comparisons, and fuel availability monitoring across all stations." />
+</svelte:head>
+
 <div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
 	<h1 class="text-2xl font-bold text-gray-900">Fuel Price Summary</h1>
 

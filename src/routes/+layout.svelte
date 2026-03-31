@@ -11,6 +11,11 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<title>FuelNSW — NSW Fuel Price Tracker</title>
+	<meta name="description" content="Track real-time NSW fuel prices. Compare E10, Unleaded, Premium, Diesel prices across all NSW service stations with live maps and historical charts." />
+	<meta property="og:title" content="FuelNSW — NSW Fuel Price Tracker" />
+	<meta property="og:description" content="Track real-time NSW fuel prices with live maps, historical charts, and availability monitoring." />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 flex flex-col">

@@ -23,10 +23,11 @@
 		loading = true;
 		error = '';
 		try {
-			const params = new URLSearchParams({ station: stationCode, fuel: fuelType });
-			const res = await fetch(`/api/fuel/history?${params}`);
+			const params = new URLSearchParams({ station: stationCode });
+			const res = await fetch(`/api/fuel/history/batch?${params}`);
 			if (!res.ok) throw new Error('Failed to load history');
-			data = await res.json();
+			const allData: Record<string, Array<{ price_updated: string; price: number }>> = await res.json();
+			data = allData[fuelType] || [];
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load chart';
 		}

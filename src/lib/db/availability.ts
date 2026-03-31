@@ -274,8 +274,8 @@ export function getAvailabilityTrend(days: number = 14): AvailabilityTrendPoint[
 			SUM(CASE WHEN event_type = 'added' THEN 1 ELSE 0 END) as added,
 			SUM(CASE WHEN event_type = 'dropped' THEN 1 ELSE 0 END) as dropped
 		FROM fuel_availability_events
-		WHERE detected_at >= date('now', '-${days} days')
+		WHERE detected_at >= date('now', ? || ' days')
 		GROUP BY date(detected_at)
 		ORDER BY date ASC
-	`).all() as AvailabilityTrendPoint[];
+	`).bind(`-${days}`).all() as AvailabilityTrendPoint[];
 }

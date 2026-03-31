@@ -7,8 +7,22 @@ import { seedMockData } from '$lib/db/mock-data';
 import { FUEL_TYPE_MAP } from '$lib/api/types';
 import { parseAddress } from '$lib/utils/parse-address';
 import { snapshotFuelAvailability, detectAndRecordChanges, backfillFromStaleRecords } from '$lib/db/availability';
+import 'dotenv/config';
 
-export const POST: RequestHandler = async () => {
+function checkAuth(request: Request): boolean {
+	const adminToken = process.env.ADMIN_TOKEN;
+	if (!adminToken) return false;
+	const auth = request.headers.get('authorization');
+	if (!auth) return false;
+	const parts = auth.split(' ');
+	if (parts.length !== 2 || parts[0] !== 'Bearer') return false;
+	return parts[1] === adminToken;
+}
+
+export const POST: RequestHandler = async ({ request }) => {
+	if (!checkAuth(request)) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
 	const COOLDOWN_MS = parseInt(process.env.COOLDOWN_MS || '', 10) || 5 * 60 * 1000;
 
 	const lastRefresh = getLatestRefreshTime();
@@ -74,7 +88,6 @@ export const POST: RequestHandler = async () => {
 	} catch (apiError) {
 		console.warn('Live API failed, falling back to cached data:', apiError);
 
-		// Check if we already have data
 		const db = getDb();
 		const existingStations = (db.prepare('SELECT COUNT(*) as c FROM stations').get() as { c: number }).c;
 		if (existingStations > 0) {
@@ -86,7 +99,6 @@ export const POST: RequestHandler = async () => {
 			});
 		}
 
-		// Seed mock data as a last resort
 		try {
 			seedMockData();
 			const stations = (db.prepare('SELECT COUNT(*) as c FROM stations').get() as { c: number }).c;
@@ -101,7 +113,7 @@ export const POST: RequestHandler = async () => {
 		} catch (mockError) {
 			return json({
 				status: 'error',
-				message: `Both live API and mock data failed: ${mockError instanceof Error ? mockError.message : 'Unknown'}`
+				message: 'Data refresh failed. Check server logs for details.'
 			}, { status: 500 });
 		}
 	}

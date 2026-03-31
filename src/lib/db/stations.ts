@@ -55,18 +55,58 @@ interface StationPriceRow {
 }
 
 export function getStationsAsGeoJSON(): StationGeoJSON[] {
+	return buildGeoJSON(getAllStationsWithPrices());
+}
+
+export function getStationsInBoundsAsGeoJSON(
+	south: number, west: number, north: number, east: number,
+	fuelType?: string
+): StationGeoJSON[] {
 	const db = getDb();
 
+	let query = `
+		SELECT s.*, p.price as price_value, p.fuel_type as price_fuel_type
+		FROM stations s
+		LEFT JOIN live_prices p ON s.code = p.station_code
+		WHERE s.latitude >= ? AND s.latitude <= ? AND s.longitude >= ? AND s.longitude <= ?
+		ORDER BY s.suburb, s.name
+	`;
+	const rows = db.prepare(query).all(south, north, west, east) as StationPriceRow[];
+
+	if (!fuelType) {
+		return buildGeoJSON(rows);
+	}
+
+	return buildGeoJSON(rows.filter(r =>
+		r.price_fuel_type === fuelType || !r.price_fuel_type
+	));
+}
+
+interface StationPriceRow {
+	code: string;
+	name: string;
+	brand: string;
+	address: string;
+	suburb: string;
+	postcode: string;
+	latitude: number;
+	longitude: number;
+	price_value: number | null;
+	price_fuel_type: string | null;
+}
+
+function getAllStationsWithPrices(): StationPriceRow[] {
+	const db = getDb();
 	const query = `
 		SELECT s.*, p.price as price_value, p.fuel_type as price_fuel_type
 		FROM stations s
 		LEFT JOIN live_prices p ON s.code = p.station_code
 		ORDER BY s.suburb, s.name
 	`;
+	return db.prepare(query).all() as StationPriceRow[];
+}
 
-	const rows = db.prepare(query).all() as StationPriceRow[];
-
-	// Group prices by station
+function buildGeoJSON(rows: StationPriceRow[]): StationGeoJSON[] {
 	const stationMap = new Map<string, StationGeoJSON>();
 	for (const row of rows) {
 		if (!stationMap.has(row.code)) {

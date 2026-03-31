@@ -167,6 +167,11 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ outlines: [] });
 	}
 
+	const pcNum = parseInt(postcode, 10);
+	if (pcNum < 2000 || pcNum > 2999) {
+		return json({ outlines: [] });
+	}
+
 	try {
 		const cached = cachePath(postcode);
 		if (existsSync(cached)) {

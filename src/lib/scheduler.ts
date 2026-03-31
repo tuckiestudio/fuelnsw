@@ -3,6 +3,7 @@ import { upsertStations } from '$lib/db/stations';
 import { getDb } from '$lib/db/client';
 import { FUEL_TYPE_MAP } from '$lib/api/types';
 import { parseAddress } from '$lib/utils/parse-address';
+import 'dotenv/config';
 
 const REFRESH_INTERVAL_MS = parseInt(process.env.SCHEDULER_INTERVAL_MS || '', 10) || 6 * 60 * 60 * 1000;
 const COOLDOWN_MS = parseInt(process.env.COOLDOWN_MS || '', 10) || 5 * 60 * 1000;

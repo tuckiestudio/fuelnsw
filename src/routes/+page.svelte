@@ -12,34 +12,25 @@
 	let loading = $state(true);
 	let error = $state('');
 	let priceRange = $state({ min: 0, max: 0 });
-	let markersLayer: any;
+	let clusterLayer: any;
 	let L: any;
-	let currentZoom: number = $state(8);
 	let searchQuery: string = $state('');
 	let showSuggestions: boolean = $state(false);
 	let postcodeBoundary: any = null;
+	let allLocations: { postcode: string; suburb: string }[] = [];
 
-	interface Location {
-		postcode: string;
-		suburb: string;
+	function escapeHtml(str: string): string {
+		return str
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
 	}
-
-	let locations = $derived.by(() => {
-		const seen = new Set<string>();
-		const result: Location[] = [];
-		for (const s of stations) {
-			const key = `${s.properties.postcode}-${s.properties.suburb}`;
-			if (!seen.has(key) && s.properties.postcode) {
-				seen.add(key);
-				result.push({ postcode: s.properties.postcode, suburb: s.properties.suburb });
-			}
-		}
-		return result.sort((a, b) => a.postcode.localeCompare(b.postcode));
-	});
 
 	let suggestions = $derived(
 		searchQuery.trim().length >= 1
-			? locations.filter(
+			? allLocations.filter(
 					(loc) =>
 						loc.postcode.startsWith(searchQuery.trim()) ||
 						loc.suburb.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -59,35 +50,62 @@
 			: stations
 	);
 
-	onMount(async () => {
+	async function loadLocations() {
 		try {
-			L = (await import('leaflet')).default;
-			await loadStations();
-
-			if (stations.length === 0) {
-				const initRes = await fetch('/api/refresh', { method: 'POST' });
-				const initData = await initRes.json();
-				if (initData.status === 'error') {
-					error = initData.message;
+			const res = await fetch('/api/fuel/stations');
+			const all: StationGeoJSON[] = await res.json();
+			const seen = new Set<string>();
+			allLocations = [];
+			for (const s of all) {
+				const key = `${s.properties.postcode}-${s.properties.suburb}`;
+				if (!seen.has(key) && s.properties.postcode) {
+					seen.add(key);
+					allLocations.push({ postcode: s.properties.postcode, suburb: s.properties.suburb });
 				}
-				await loadStations();
 			}
-
-			await initMap();
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load map data';
-			loading = false;
+			allLocations.sort((a, b) => a.postcode.localeCompare(b.postcode));
+		} catch {
+			// locations are best-effort for suggestions
 		}
-	});
+	}
 
-	async function loadStations() {
-		const res = await fetch('/api/fuel/stations');
-		stations = await res.json();
+	async function loadViewportStations() {
+		if (!map) return;
+		const bounds = map.getBounds();
+		const zoom = map.getZoom();
+
+		if (zoom < 8) {
+			stations = [];
+			updatePriceRange();
+			renderMarkers();
+			return;
+		}
+
+		try {
+			const params = new URLSearchParams({
+				south: bounds.getSouth().toFixed(4),
+				west: bounds.getWest().toFixed(4),
+				north: bounds.getNorth().toFixed(4),
+				east: bounds.getEast().toFixed(4),
+				fuel: selectedFuelType
+			});
+			const res = await fetch(`/api/fuel/stations/viewport?${params}`);
+			if (res.ok) {
+				stations = await res.json();
+				if (stations.length === 0 && loading) {
+					error = 'No fuel data available. Trigger a data refresh via the admin API.';
+				}
+			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to load stations';
+		}
 		updatePriceRange();
+		renderMarkers();
 	}
 
 	function updatePriceRange() {
-		const prices = filteredStations
+		const source = searchQuery.trim() ? filteredStations : stations;
+		const prices = source
 			.map((s) => parseFloat(s.properties[selectedFuelType] ?? ''))
 			.filter((p) => !isNaN(p));
 		priceRange = {
@@ -97,9 +115,17 @@
 	}
 
 	async function initMap() {
+		L = (await import('leaflet')).default;
+		await import('leaflet.markercluster');
+
+		const leafletCss = document.createElement('link');
+		leafletCss.rel = 'stylesheet';
+		leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+		document.head.appendChild(leafletCss);
+
 		map = L.map(mapContainer, {
 			center: [-33.8, 151.2],
-			zoom: 8,
+			zoom: 10,
 			zoomControl: true
 		});
 
@@ -108,27 +134,44 @@
 			maxZoom: 18
 		}).addTo(map);
 
-		markersLayer = L.layerGroup().addTo(map);
-		currentZoom = map.getZoom();
-		renderMarkers();
+		clusterLayer = L.markerClusterGroup({
+			maxClusterRadius: 50,
+			spiderfyOnMaxZoom: true,
+			showCoverageOnHover: false,
+			zoomToBoundsOnClick: true,
+			iconCreateFunction: (cluster: any) => {
+				const count = cluster.getChildCount();
+				let size = 'small';
+				let dim = 40;
+				if (count > 100) { size = 'large'; dim = 56; }
+				else if (count > 30) { size = 'medium'; dim = 48; }
+				return L.divIcon({
+					html: `<div><span>${count}</span></div>`,
+					className: `marker-cluster marker-cluster-${size}`,
+					iconSize: L.point(dim, dim)
+				});
+			}
+		});
+
+		map.addLayer(clusterLayer);
+
+		await loadViewportStations();
 		loading = false;
 
-		map.on('zoomend', () => {
-			const newZoom = map.getZoom();
-			if (newZoom !== currentZoom) {
-				currentZoom = newZoom;
-				renderMarkers();
-			}
+		let moveTimeout: ReturnType<typeof setTimeout>;
+		map.on('moveend zoomend', () => {
+			clearTimeout(moveTimeout);
+			moveTimeout = setTimeout(loadViewportStations, 200);
 		});
 	}
 
 	function renderMarkers() {
-		if (!markersLayer || !L) return;
-		markersLayer.clearLayers();
+		if (!clusterLayer || !L) return;
+		clusterLayer.clearLayers();
 
-		const showLabels = currentZoom >= 12;
+		const source = searchQuery.trim() ? filteredStations : stations;
 
-		for (const station of filteredStations) {
+		for (const station of source) {
 			const price = parseFloat(station.properties[selectedFuelType] ?? '');
 			if (isNaN(price)) continue;
 
@@ -136,49 +179,21 @@
 			const lat = station.geometry.coordinates[1];
 			const lng = station.geometry.coordinates[0];
 
-			let icon: any;
-			if (showLabels) {
-				const priceStr = price.toFixed(1);
-				icon = L.divIcon({
-					html: `<div style="
-						background:${color};
-						color:#fff;
-						font-size:11px;
-						font-weight:600;
-						padding:2px 6px;
-						border-radius:8px;
-						white-space:nowrap;
-						text-align:center;
-						border:1px solid rgba(0,0,0,0.2);
-						box-shadow:0 1px 3px rgba(0,0,0,0.3);
-						line-height:1.4;
-					">${priceStr}</div>`,
-					iconSize: null,
-					iconAnchor: [0, 0],
-					className: ''
-				});
-			} else {
-				icon = L.divIcon({
-					html: `<div style="
-						background:${color};
-						width:12px;height:12px;
-						border-radius:50%;
-						border:1px solid #333;
-					"></div>`,
-					iconSize: [12, 12],
-					iconAnchor: [6, 6],
-					className: ''
-				});
-			}
+			const icon = L.divIcon({
+				html: `<div class="price-label" style="background:${color}"><span>${escapeHtml(price.toFixed(1))}</span></div>`,
+				iconSize: null,
+				iconAnchor: [0, 0],
+				className: ''
+			});
 
 			const marker = L.marker([lat, lng], { icon });
 
 			const priceStr = price.toFixed(1);
 			marker.bindTooltip(
-				`<strong>${station.properties.name}</strong><br/>` +
-					`${station.properties.brand}<br/>` +
-					`${station.properties.suburb}<br/>` +
-					`${selectedFuelType}: <strong>${priceStr}</strong> c/L`,
+				`<strong>${escapeHtml(station.properties.name)}</strong><br/>` +
+					`${escapeHtml(station.properties.brand ?? '')}<br/>` +
+					`${escapeHtml(station.properties.suburb)}<br/>` +
+					`${selectedFuelType}: <strong>${escapeHtml(priceStr)}</strong> c/L`,
 				{ direction: 'top', offset: [0, -8] }
 			);
 
@@ -186,14 +201,13 @@
 				selectedStation = station;
 			});
 
-			markersLayer.addLayer(marker);
+			clusterLayer.addLayer(marker);
 		}
 	}
 
 	async function onFuelTypeChange(fuelType: string) {
 		selectedFuelType = fuelType;
-		updatePriceRange();
-		renderMarkers();
+		await loadViewportStations();
 	}
 
 	function closePanel() {
@@ -213,13 +227,9 @@
 
 		try {
 			const res = await fetch(`/api/postcode-boundary?postcode=${postcode}`);
-			if (!res.ok) {
-				console.warn('Boundary fetch failed:', res.status);
-				return;
-			}
+			if (!res.ok) return;
 			const data = await res.json();
 			const outlines: [number, number][][] = data.outlines || [];
-
 			if (outlines.length === 0) return;
 
 			postcodeBoundary = L.layerGroup();
@@ -233,8 +243,8 @@
 				}).addTo(postcodeBoundary);
 			}
 			postcodeBoundary.addTo(map);
-		} catch (e) {
-			console.warn('Failed to fetch postcode boundary:', e);
+		} catch {
+			// best-effort
 		}
 	}
 
@@ -254,7 +264,7 @@
 			const bounds = L.latLngBounds(validCoords);
 			map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 15 });
 		} else {
-			map.flyTo([-33.8, 151.2], 8, { duration: 0.8 });
+			map.flyTo([-33.8, 151.2], 10, { duration: 0.8 });
 		}
 	}
 
@@ -285,9 +295,28 @@
 		clearPostcodeBoundary();
 		updatePriceRange();
 		renderMarkers();
-		map?.flyTo([-33.8, 151.2], 8, { duration: 0.8 });
+		map?.flyTo([-33.8, 151.2], 10, { duration: 0.8 });
 	}
+
+	onMount(async () => {
+		try {
+			loadLocations();
+			await initMap();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to load map data';
+			loading = false;
+		}
+	});
 </script>
+
+<svelte:head>
+	<title>FuelNSW — Live NSW Fuel Price Map</title>
+	<meta name="description" content="Real-time NSW fuel prices on an interactive map. Compare E10, Unleaded, Premium 95/98, Diesel and more across all NSW service stations." />
+	<meta property="og:title" content="FuelNSW — Live NSW Fuel Price Map" />
+	<meta property="og:description" content="Real-time NSW fuel prices on an interactive map. Compare prices across all NSW service stations." />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
+</svelte:head>
 
 <div class="relative flex h-[calc(100vh-3.5rem)]">
 	<!-- Controls row -->
@@ -306,7 +335,7 @@
 					class="w-36 text-sm outline-none bg-transparent placeholder-gray-400"
 				/>
 				{#if searchQuery}
-					<button onclick={clearSearch} class="text-gray-400 hover:text-gray-600 shrink-0">
+					<button onclick={clearSearch} aria-label="Clear search" class="text-gray-400 hover:text-gray-600 shrink-0">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
 					</button>
 				{/if}
@@ -355,7 +384,6 @@
 				<div class="w-20 h-2 rounded bg-gradient-to-r from-green-500 via-yellow-500 via-orange-400 to-red-500"></div>
 				<span class="text-red-600 font-medium">{priceRange.max.toFixed(1)}</span>
 			</div>
-			<div class="text-gray-400 mt-1">Zoom in to see prices on map</div>
 		</div>
 	{/if}
 
@@ -446,7 +474,7 @@
 
 					<hr class="border-gray-200">
 
-					<!-- Historical price charts — one per fuel type -->
+					<!-- Historical price charts -->
 					<div>
 						<div class="text-sm font-medium text-gray-700 mb-2">Price History</div>
 						<div class="space-y-3">
@@ -466,3 +494,72 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	:global(.price-label) {
+		color: #fff;
+		font-size: 11px;
+		font-weight: 600;
+		padding: 2px 6px;
+		border-radius: 8px;
+		white-space: nowrap;
+		text-align: center;
+		border: 1px solid rgba(0,0,0,0.2);
+		box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+		line-height: 1.4;
+	}
+
+	:global(.marker-cluster-small) {
+		background-color: rgba(34, 197, 94, 0.3);
+	}
+	:global(.marker-cluster-small div) {
+		background-color: rgba(34, 197, 94, 0.7);
+		width: 32px;
+		height: 32px;
+		margin-left: 4px;
+		margin-top: 4px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+		font-weight: 600;
+		font-size: 12px;
+	}
+
+	:global(.marker-cluster-medium) {
+		background-color: rgba(234, 179, 8, 0.3);
+	}
+	:global(.marker-cluster-medium div) {
+		background-color: rgba(234, 179, 8, 0.7);
+		width: 38px;
+		height: 38px;
+		margin-left: 5px;
+		margin-top: 5px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+		font-weight: 600;
+		font-size: 12px;
+	}
+
+	:global(.marker-cluster-large) {
+		background-color: rgba(239, 68, 68, 0.3);
+	}
+	:global(.marker-cluster-large div) {
+		background-color: rgba(239, 68, 68, 0.7);
+		width: 44px;
+		height: 44px;
+		margin-left: 6px;
+		margin-top: 6px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+		font-weight: 600;
+		font-size: 13px;
+	}
+</style>
