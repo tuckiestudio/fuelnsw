@@ -57,8 +57,8 @@ export async function configureRevenueCat(): Promise<void> {
 	try {
 		const { Purchases } = await import('@revenuecat/purchases-capacitor');
 		const apiKey = Capacitor.getPlatform() === 'ios'
-			? 'appl_XYZ'
-			: 'goog_XYZ';
+			? 'test_MxcUIPbEYHMkaNWSwvVwmEMIqec'
+			: 'test_MxcUIPbEYHMkaNWSwvVwmEMIqec';
 		await Purchases.configure({ apiKey, appUserID: undefined });
 	} catch {}
 }

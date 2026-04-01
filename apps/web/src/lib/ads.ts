@@ -32,8 +32,8 @@ export async function maybeShowInterstitial(): Promise<boolean> {
 			const { AdMob } = await import('@capacitor-community/admob');
 			const platform = Capacitor.getPlatform();
 			const adId = platform === 'ios'
-				? 'ca-app-pub-XXXX/XXXX'
-				: 'ca-app-pub-XXXX/XXXX';
+				? 'ca-app-pub-8792853309353392/1412128551'
+				: 'ca-app-pub-8792853309353392/5714335648';
 			await AdMob.prepareInterstitial({ adId });
 			await AdMob.showInterstitial();
 			return true;

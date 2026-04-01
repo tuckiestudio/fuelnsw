@@ -2,55 +2,22 @@
 
 Steps 10-14 are implemented. These remaining tasks require manual setup before going live.
 
-## High Priority
+## Completed
 
-### Replace AdMob Placeholder IDs
+- [x] **PWA Icons** — Generated from `icon.svg`: `icon-192x192.png`, `icon-512x512.png`, `maskable-icon-192x192.png`, `maskable-icon-512x512.png`, `apple-touch-icon.png`
+- [x] **AdMob IDs** — Replaced placeholders with real interstitial ad IDs in `apps/web/src/lib/ads.ts` (iOS: `...1412128551`, Android: `...5714335648`). Banner ad IDs (iOS: `...2976491668`, Android: `...5301274237`) to be configured in native projects when banners are added.
+- [x] **RevenueCat Keys** — Using test key in `apps/web/src/lib/subscription.ts`. Replace with production `appl_` and `goog_` keys when apps are published to stores.
+- [x] **Web AdSense** — Added script tag to `apps/web/src/app.html` with publisher ID `ca-pub-8792853309353392`.
+- [x] **CSP Report-Only** — Switched to `Content-Security-Policy-Report-Only` in `hooks.server.ts`. Switch back to `Content-Security-Policy` after verifying no violations in production.
+- [x] **Native Platforms** — Added `ios/` and `android/` via `npx cap add`. All 8 Capacitor plugins detected.
+- [x] **Haptic Feedback** — Wired `@capacitor/haptics` into `StationPanel.svelte` and `QuickFuelSheet.svelte`.
+- [x] **Web Subscriptions** — Skipped. Ad removal only available via native app subscriptions.
 
-File: `apps/web/src/lib/ads.ts`
+## Remaining Manual Steps
 
-Replace all `ca-app-pub-XXXX/XXXX` with real AdMob ad unit IDs:
-- `initAds()` — banner ad ID (line ~22)
-- `maybeShowInterstitial()` — interstitial ad ID (line ~77)
+### Switch CSP Back to Enforcing
 
-Use platform-specific IDs: one for iOS, one for Android.
-
-### Replace RevenueCat API Keys
-
-File: `apps/web/src/lib/subscription.ts`
-
-Replace placeholder keys in `configureRevenueCat()`:
-- `appl_XYZ` → RevenueCat Apple API key
-- `goog_XYZ` → RevenueCat Google API key
-
-### Generate PWA Icons
-
-Source SVG: `apps/web/static/icons/icon.svg`
-
-Generate PNGs at these sizes and place in `apps/web/static/icons/`:
-- `icon-192x192.png`
-- `icon-512x512.png`
-- `maskable-icon-192x192.png` (40% safe area padding)
-- `maskable-icon-512x512.png` (40% safe area padding)
-- `apple-touch-icon.png` (180x180)
-
-Can use an online tool like realfavicongenerator.net or `npx pwa-asset-generator`.
-
-## Medium Priority
-
-### Add Native Platforms
-
-Requires Xcode (macOS) and Android Studio.
-
-```bash
-npx cap add ios
-npx cap add android
-```
-
-Then sync after builds:
-
-```bash
-npm run build:web && npx cap sync
-```
+After verifying no violations in production logs, change `Content-Security-Policy-Report-Only` back to `Content-Security-Policy` in `apps/web/src/hooks.server.ts`.
 
 ### Set Up RevenueCat Dashboard
 
@@ -59,31 +26,26 @@ npm run build:web && npx cap sync
 3. Create entitlement: `remove_ads`
 4. Create offering with monthly package at $1.00
 5. Configure server-side webhooks for receipt validation
+6. Replace test API key in `apps/web/src/lib/subscription.ts` with production keys
 
 The entitlement ID `remove_ads` must match `ENTITLEMENT_ID` in `lib/subscription.ts`.
 
-### Add Web AdSense
+### Replace RevenueCat Production Keys
 
-Add to `apps/web/src/app.html` or `apps/web/src/routes/+layout.svelte`:
+When apps are published, replace `test_MxcUIPbEYHMkaNWSwvVwmEMIqec` in `apps/web/src/lib/subscription.ts` with:
+- `appl_...` for iOS
+- `goog_...` for Android
 
-```html
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX" crossorigin="anonymous"></script>
+### Configure Native Banner Ads
+
+Banner ad IDs need to be used when implementing banner ad components in the native iOS/Android projects:
+- iOS banner: `ca-app-pub-8792853309353392/2976491668`
+- Android banner: `ca-app-pub-8792853309353392/5301274237`
+
+### Build & Sync Native Apps
+
+```bash
+npm run build:web && npx cap sync
 ```
 
-Replace `ca-pub-XXXX` with your AdSense publisher ID. The CSP headers already allow this domain.
-
-## Low Priority
-
-### Test CSP Before Deploy
-
-Temporarily use `Content-Security-Policy-Report-Only` instead of `Content-Security-Policy` in `hooks.server.ts` to verify nothing breaks without actually blocking requests.
-
-### Web Subscription (Stripe)
-
-RevenueCat only handles native subscriptions. For web ad removal, options:
-- Stripe Checkout with server endpoints (`POST /api/subscription/create`, `POST /api/subscription/webhook`)
-- Skip web subscriptions entirely and only offer ad removal in native apps
-
-### Haptic Feedback (Native)
-
-Plan mentions adding haptics to `StationPanel.svelte` and `QuickFuelSheet.svelte` via `@capacitor/haptics`. The plugin is installed but not yet wired into components.
+Then open in Xcode / Android Studio to configure signing and build for release.
