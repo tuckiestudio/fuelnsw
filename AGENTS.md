@@ -43,13 +43,28 @@ ausfuel/
 │   │   └── src/
 │   │       ├── hooks.server.ts      # DB init, scheduler, rate limit, compression
 │   │       ├── routes/
-│   │       │   ├── +page.svelte          # Map page (leaflet + markers)
+│   │       │   ├── +page.svelte          # Map page (leaflet + markers, overlay system)
 │   │       │   ├── +layout.svelte        # Nav: Map | Summary
 │   │       │   ├── summary/+page.svelte  # Price summary + availability
 │   │       │   └── api/                   # See API section below
-│   │       └── components/
-│   │           └── station/
-│   │               └── PriceChart.svelte  # chart.js historical price line chart
+│   │       ├── components/
+│   │       │   ├── map/                   # Map UI overlay components
+│   │       │   │   ├── SearchBar.svelte          # Postcode/suburb search with suggestions
+│   │       │   │   ├── FuelTypeSelector.svelte   # Horizontal scrollable fuel type pills
+│   │       │   │   ├── StationPanel.svelte       # Station detail slide-up panel with price chart
+│   │       │   │   ├── Legend.svelte             # Price color legend overlay
+│   │       │   │   ├── LocateButton.svelte       # GPS locate-me button
+│   │       │   │   ├── QuickFuelButton.svelte    # "Navigate to cheapest" FAB
+│   │       │   │   ├── QuickFuelSheet.svelte     # Bottom sheet: nearest cheapest stations
+│   │       │   │   └── Onboarding.svelte         # First-visit fuel type picker modal
+│   │       │   ├── PaywallModal.svelte       # Subscription paywall (native only)
+│   │       │   └── station/
+│   │       │       └── PriceChart.svelte  # chart.js historical price line chart
+│   │       └── lib/
+│   │           ├── preferences.ts          # localStorage wrappers (fuel type, position, onboarding, removeAds)
+│   │           ├── navigation.ts           # Platform-aware maps navigation (Apple Maps / Google Maps)
+│   │           ├── ads.ts                  # AdMob init + interstitial logic (Capacitor native only)
+│   │           └── subscription.ts         # RevenueCat subscription management (native only)
 │   └── dashboard/            # Analytics dashboard (port 3001)
 │       ├── .env              # DATA_DIR only (read-only, no API keys needed)
 │       ├── svelte.config.js  # adapter-node, runes, $components alias
@@ -156,12 +171,14 @@ Grouped brands: `Ampol` (includes EG Ampol, Ampol Foodary, etc.), `Caltex` (incl
 |---|---|---|
 | `/api/fuel/stations` | GET | All stations with live prices as GeoJSON |
 | `/api/fuel/stations/viewport?south,west,north,east,fuel` | GET | Stations within map bounds |
+| `/api/fuel/stations/nearest?lat,lng,fuel,limit` | GET | Nearest cheapest stations (20km radius, sorted by price) |
 | `/api/fuel/station/[code]` | GET | Single station detail + prices |
 | `/api/fuel/prices` | GET | All live prices |
 | `/api/fuel/history?station=CODE&fuel=TYPE` | GET | Monthly-averaged historical prices for one station+fuel (merges `hist_` data) |
 | `/api/fuel/history/batch?station=CODE` | GET | History for all fuel types at once |
 | `/api/dry-stations` | GET | Stations that recently dropped fuel types |
 | `/api/postcode-boundary?postcode=N` | GET | GeoJSON boundary for a postcode |
+| `/api/geolocate` | GET | Server-side IP geolocation proxy (ip-api.com). Returns `{lat, lng}` |
 | `/api/health` | GET | Health check (DB status, station count, last refresh) |
 | `/api/refresh` | POST | Trigger data refresh (requires `Authorization: Bearer ADMIN_TOKEN`) |
 
@@ -202,6 +219,39 @@ Web app uses a 30-second TTL `node-cache` for API responses. Dashboard uses the 
 ### Scheduler
 Runs only in the web app (`hooks.server.ts` triggers `startScheduler()`). Runs every 6 hours, fetches from NSW Gov API, upserts stations + prices, detects availability changes, and schedules weekly aggregation at 2 AM Sydney time. Dashboard never triggers data refreshes.
 
+### Mobile overlay system
+The map page uses a z-index hierarchy for overlapping UI on mobile:
+- `z-[1000]`: Base controls (SearchBar, FuelTypeSelector, Legend, LocateButton)
+- `z-[1001]`: QuickFuelButton
+- `z-[1002]`: Mobile backdrop dimmer (semi-transparent overlay when panel is open)
+- `z-[1003]`: Panels (StationPanel, QuickFuelSheet)
+- `z-[1004]`: System overlays (Loading spinner, error banners)
+- `z-[2000]`: Onboarding modal
+
+Panels are mutually exclusive — opening StationPanel closes QuickFuelSheet and vice versa. Mobile base controls hide via `hideMobileControls` when any panel is open. Leaflet zoom controls are positioned bottom-right to avoid overlapping SearchBar.
+
+### Advertising and subscriptions
+Ads display on **all platforms** (web and native). Subscription-based ad removal is **native-only** (iOS/Android via RevenueCat).
+
+- **Web**: Ads always show. No "Remove Ads" button, no PaywallModal, no RevenueCat. `adsRemoved` is always `false`.
+- **Native (iOS/Android)**: Ads show by default. "Remove Ads" button in nav opens `PaywallModal`. RevenueCat manages in-app subscriptions ($1/mo). On subscription, `setRemoveAds(true)` is stored in localStorage.
+
+Ad placement:
+- `StationPanel`: Banner ad shows when panel is collapsed on mobile, or always on desktop web. Hidden when `adsRemoved` is true (native subscription).
+- `QuickFuelSheet`: Banner ad shows above the cheapest stations list. Hidden when `adsRemoved` is true.
+- Interstitial ads: Shown every 3rd navigation action on native only (`maybeShowInterstitial()` in `ads.ts`).
+
+`ads.ts` handles AdMob init and interstitial display — all guarded by `Capacitor.isNativePlatform()`. `subscription.ts` handles RevenueCat configuration, purchase, restore, and entitlement checking — all guarded by `Capacitor.isNativePlatform()`. There is no backend subscriber tracking; RevenueCat is the source of truth, checked client-side on each app launch.
+
+### User preferences
+`src/lib/preferences.ts` stores in localStorage: selected fuel type (default `E10`), last map position, onboarding completed state. The map restores position on reload via `getLastPosition()`.
+
+### Server-side geolocation
+`/api/geolocate` proxies to `ip-api.com` (free, no API key, server-side only). Used as fallback when browser `navigator.geolocation` is unavailable or denied. The client never calls ip-api directly (CORS issues, rate limits).
+
+### Navigate to cheapest
+`QuickFuelButton` triggers the "find cheapest nearby" flow: locates user → calls `/api/fuel/stations/nearest` → shows `QuickFuelSheet` bottom sheet. The `getNearestStationsByPrice()` DB function queries by price ASC within 20km radius (queries `limit*50` rows then filters by distance). `navigation.ts` opens Apple Maps on iOS, Google Maps on Android/web.
+
 ## Gotchas
 
 1. **`DATA_DIR` resolution** — The DB client (`packages/shared/src/db/client.ts`) resolves `DATA_DIR` lazily on first `getDb()` call, not at module import time. This is because Vite loads `.env` after module evaluation. If `DATA_DIR` is not set, it defaults to `process.cwd()/data`.
@@ -215,3 +265,15 @@ Runs only in the web app (`hooks.server.ts` triggers `startScheduler()`). Runs e
 5. **Prepared statement caching** — The history API caches prepared statements by key. Cache keys must be unique per SQL string. Reusing a key with different SQL silently returns the wrong cached statement.
 
 6. **`brand_group` not in schema.ts** — The `brand_group` column on `stations` and the `postcode_sa4_mapping`/`weekly_price_aggregates` tables exist in production but are not in `initializeSchema()`. They were created by migration scripts. The dashboard hooks call `initializeSchema()` to ensure base tables exist, but the extra tables must already be present.
+
+7. **Leaflet CSS loading** — Leaflet CSS is loaded via `await import('leaflet/dist/leaflet.css')` in `onMount`, not via a CDN `<link>` tag. This ensures it's bundled with the app and avoids FOUC.
+
+8. **`onMount` async cleanup** — Svelte 5's `onMount` does not support async cleanup returns. The map init wraps async work in an IIFE inside a synchronous `onMount` so the cleanup function (removing resize listener) works correctly.
+
+9. **`getFuelType()` default** — Returns `'E10'` when no localStorage preference exists. DB stores fuel types as `E10`, `Unleaded`, `P95`, `P98`, `Diesel`, `LPG`, `B20`, `E85`, `PDL`, `EV`.
+
+10. **Nearest stations radius** — `getNearestStationsByPrice()` queries `limit*50` rows sorted by price, then filters to 20km radius. This is intentional — a simple distance-first query would return nearby expensive stations instead of cheap ones within driving range.
+
+11. **Pre-existing type errors** — `svelte-check` reports many `@fuelnsw/shared` module resolution errors. These are pre-existing (Vite resolves them at runtime via aliases, but `svelte-check` doesn't understand the workspace alias). Do not attempt to fix these.
+
+12. **`adsRemoved` on web** — On web, `adsRemoved` is hardcoded to `false` in `+layout.svelte`. The `getRemoveAds()` localStorage value is only read on native platforms. This ensures web users always see ads with no way to dismiss them.

@@ -179,7 +179,8 @@ export function getNearestStationsByPrice(
 	lat: number,
 	lng: number,
 	fuelType: string,
-	limit = 10
+	limit = 10,
+	radius = 20
 ): NearestStation[] {
 	const db = getDb();
 	const queryLimit = Math.max(limit * 50, 500);
@@ -210,7 +211,7 @@ export function getNearestStationsByPrice(
 	`).all(lat, lng, lat, fuelType, queryLimit) as NearestStation[];
 
 	return rows
-		.filter(r => r.distance_km <= 20)
+		.filter(r => r.distance_km <= radius)
 		.slice(0, limit)
 		.map(r => ({
 			...r,

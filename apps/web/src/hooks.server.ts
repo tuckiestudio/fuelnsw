@@ -59,10 +59,20 @@ setInterval(() => {
 }, 60_000);
 
 const securityHeaders: Record<string, string> = {
-	'X-Frame-Options': 'DENY',
+	'X-Frame-Options': 'SAMEORIGIN',
 	'X-Content-Type-Options': 'nosniff',
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
-	'X-Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://overpass-api.de"
+	'Content-Security-Policy': [
+		"default-src 'self'",
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+		"img-src 'self' data: blob: https://*.tile.openstreetmap.org https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+		"connect-src 'self' https://ipapi.co https://overpass-api.de https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
+		"font-src 'self' https://fonts.gstatic.com",
+		"frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://pagead2.googlesyndication.com",
+		"worker-src 'self'",
+		"manifest-src 'self'"
+	].join('; ')
 };
 
 const COMPRESSION_THRESHOLD = 1024;

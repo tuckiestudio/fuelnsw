@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { navigateTo } from '$lib/navigation';
+	import { maybeShowInterstitial } from '$lib/ads';
+	import { getRemoveAds } from '$lib/preferences';
 
 	interface NearestStation {
 		code: string;
@@ -25,8 +27,11 @@
 		onclose?: () => void;
 	} = $props();
 
-	function handleNavigate(station: NearestStation) {
-		navigateTo(station.latitude, station.longitude, station.name);
+	let adsRemoved = $state(getRemoveAds());
+
+	async function handleNavigate(station: NearestStation) {
+		await maybeShowInterstitial();
+		await navigateTo(station.latitude, station.longitude, station.name);
 	}
 
 	let maxDistance = $derived(
@@ -45,6 +50,11 @@
 
 <div class="absolute bottom-0 left-0 right-0 z-[1003] sm:relative sm:bottom-auto sm:left-auto sm:right-auto">
 	<div class="bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 sm:rounded-2xl sm:border max-w-md mx-auto">
+		{#if !adsRemoved}
+			<div class="bg-gray-50 border-b border-gray-200 flex items-center justify-center h-[50px] rounded-t-2xl">
+				<span class="text-xs text-gray-400">Advertisement</span>
+			</div>
+		{/if}
 		<div class="flex items-center justify-between p-4 pb-2">
 			<div>
 				<h3 class="font-bold text-gray-900">Cheapest {fuelType} nearby</h3>

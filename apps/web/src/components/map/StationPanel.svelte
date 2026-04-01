@@ -4,6 +4,8 @@
 	import { FUEL_OPTIONS } from '@fuelnsw/shared/utils/fuel-types';
 	import PriceChart from '$components/station/PriceChart.svelte';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
+	import { maybeShowInterstitial } from '$lib/ads';
+	import { getRemoveAds } from '$lib/preferences';
 
 	let {
 		station,
@@ -17,6 +19,7 @@
 	let sheetHeight = $state(browser ? Math.round(window.innerHeight * 0.5) : 0);
 	let animated = $state(true);
 	let isMobile = $state(browser ? window.innerWidth < 640 : false);
+	let adsRemoved = $state(getRemoveAds());
 
 	let snapHalf = browser ? Math.round(window.innerHeight * 0.5) : 0;
 	let snapFull = browser ? Math.round(window.innerHeight * 0.9) : 0;
@@ -26,7 +29,10 @@
 	let dragStartY = 0;
 	let dragStartHeight = 0;
 
+	let isCollapsed = $derived(sheetHeight < snapFull && sheetHeight > 0);
+
 	onMount(() => {
+		adsRemoved = getRemoveAds();
 		snapHalf = Math.round(window.innerHeight * 0.5);
 		snapFull = Math.round(window.innerHeight * 0.9);
 		sheetHeight = snapHalf;
@@ -71,7 +77,7 @@
 		sheetHeight = Math.max(0, Math.min(snapFull, dragStartHeight + dy));
 	}
 
-	function onDragEnd() {
+	async function onDragEnd() {
 		if (!isDragging) return;
 		isDragging = false;
 		animated = true;
@@ -92,12 +98,18 @@
 		}
 
 		const midpoint = (snapHalf + snapFull) / 2;
+		if (sheetHeight >= midpoint) {
+			await maybeShowInterstitial();
+		}
 		sheetHeight = sheetHeight < midpoint ? snapHalf : snapFull;
 	}
 
-	function toggleSnap() {
+	async function toggleSnap() {
 		if (wasDrag || dismissing) return;
 		animated = true;
+		if (sheetHeight < snapFull) {
+			await maybeShowInterstitial();
+		}
 		sheetHeight = sheetHeight >= snapFull ? snapHalf : snapFull;
 	}
 </script>
@@ -113,6 +125,11 @@
 	style={isMobile ? `height: ${sheetHeight}px; transition: ${animated ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'}` : ''}
 	bind:this={sheetEl}
 >
+	{#if !adsRemoved && (isCollapsed || !isMobile)}
+		<div class="shrink-0 bg-gray-50 border-b border-gray-200 flex items-center justify-center h-[50px]">
+			<span class="text-xs text-gray-400">Advertisement</span>
+		</div>
+	{/if}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
 		class="sm:hidden sheet-handle flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"

@@ -19,6 +19,7 @@
 		setLastPosition
 	} from '$lib/preferences';
 
+
 	let mapContainer: HTMLDivElement;
 	let map: any;
 	let selectedFuelType: string = $state(getFuelType());
@@ -174,18 +175,32 @@
 			zoomToBoundsOnClick: true,
 			iconCreateFunction: (cluster: any) => {
 				const count = cluster.getChildCount();
-				let size = 'small';
+				const markers = cluster.getAllChildMarkers();
+				const prices = markers.map((m: any) => m.price).filter((p: any) => p !== undefined);
+				const avgPrice = prices.length ? prices.reduce((a: number, b: number) => a + b, 0) / prices.length : 0;
+				const color = getPriceColor(avgPrice, priceRange.min, priceRange.max);
+				const cr = parseInt(color.slice(1, 3), 16);
+				const cg = parseInt(color.slice(3, 5), 16);
+				const cb = parseInt(color.slice(5, 7), 16);
+
 				let dim = 40;
+				let innerDim = 32;
+				let margin = 4;
+				let fontSize = 12;
 				if (count > 100) {
-					size = 'large';
 					dim = 56;
+					innerDim = 44;
+					margin = 6;
+					fontSize = 13;
 				} else if (count > 30) {
-					size = 'medium';
 					dim = 48;
+					innerDim = 38;
+					margin = 5;
 				}
+
 				return L.divIcon({
-					html: `<div><span>${count}</span></div>`,
-					className: `marker-cluster marker-cluster-${size}`,
+					html: `<div style="background-color:rgba(${cr},${cg},${cb},0.3);border-radius:50%"><div style="background-color:rgba(${cr},${cg},${cb},0.7);width:${innerDim}px;height:${innerDim}px;margin:${margin}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:${fontSize}px"><span>${count}</span></div></div>`,
+					className: 'marker-cluster',
 					iconSize: L.point(dim, dim)
 				});
 			}
@@ -225,6 +240,7 @@
 			});
 
 			const marker = L.marker([lat, lng], { icon });
+			(marker as any).price = price;
 
 			const priceStr = price.toFixed(1);
 			marker.bindTooltip(
@@ -409,24 +425,31 @@
 		if (!userPosition) return;
 		quickFuelLoading = true;
 		showQuickFuel = false;
+		const radii = [5, 10, 15, 20];
 		try {
-			const params = new URLSearchParams({
-				lat: String(userPosition.lat),
-				lng: String(userPosition.lng),
-				fuel: selectedFuelType,
-				limit: '10'
-			});
-			const res = await fetch(`/api/fuel/stations/nearest?${params}`);
-			if (res.ok) {
-				const data = await res.json();
-				quickFuelStations = data.stations || [];
-				if (quickFuelStations.length > 0) {
-					showQuickFuel = true;
+			for (const radius of radii) {
+				const params = new URLSearchParams({
+					lat: String(userPosition.lat),
+					lng: String(userPosition.lng),
+					fuel: selectedFuelType,
+					limit: '10',
+					radius: String(radius)
+				});
+				const res = await fetch(`/api/fuel/stations/nearest?${params}`);
+				if (res.ok) {
+					const data = await res.json();
+					quickFuelStations = data.stations || [];
+					if (quickFuelStations.length > 0) {
+						showQuickFuel = true;
+						break;
+					}
 				} else {
-					error = `No ${selectedFuelType} stations found nearby`;
+					error = 'Failed to find nearby stations';
+					break;
 				}
-			} else {
-				error = 'Failed to find nearby stations';
+			}
+			if (!showQuickFuel && !error) {
+				error = `No ${selectedFuelType} stations found nearby`;
 			}
 		} catch {
 			error = 'Failed to find nearby stations';
@@ -677,57 +700,7 @@
 		line-height: 1.4;
 	}
 
-	:global(.marker-cluster-small) {
-		background-color: rgba(34, 197, 94, 0.3);
-	}
-	:global(.marker-cluster-small div) {
-		background-color: rgba(34, 197, 94, 0.7);
-		width: 32px;
-		height: 32px;
-		margin-left: 4px;
-		margin-top: 4px;
+	:global(.marker-cluster) {
 		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #fff;
-		font-weight: 600;
-		font-size: 12px;
-	}
-
-	:global(.marker-cluster-medium) {
-		background-color: rgba(234, 179, 8, 0.3);
-	}
-	:global(.marker-cluster-medium div) {
-		background-color: rgba(234, 179, 8, 0.7);
-		width: 38px;
-		height: 38px;
-		margin-left: 5px;
-		margin-top: 5px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #fff;
-		font-weight: 600;
-		font-size: 12px;
-	}
-
-	:global(.marker-cluster-large) {
-		background-color: rgba(239, 68, 68, 0.3);
-	}
-	:global(.marker-cluster-large div) {
-		background-color: rgba(239, 68, 68, 0.7);
-		width: 44px;
-		height: 44px;
-		margin-left: 6px;
-		margin-top: 6px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #fff;
-		font-weight: 600;
-		font-size: 13px;
 	}
 </style>

@@ -1,11 +1,40 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import '../app.css';
 	import type { Snippet } from 'svelte';
+	import { Capacitor } from '@capacitor/core';
 
 	let { children }: { children: Snippet } = $props();
 
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
+	import { getRemoveAds } from '$lib/preferences';
+	import PaywallModal from '$components/PaywallModal.svelte';
+
+	const isNative = Capacitor.isNativePlatform();
+
+	let showPaywall = $state(false);
+	let adsRemoved = $state(isNative ? getRemoveAds() : false);
+
+	onMount(() => {
+		adsRemoved = isNative ? getRemoveAds() : false;
+
+		if (!adsRemoved) {
+			import('$lib/ads').then(({ initAds }) => {
+				initAds();
+			});
+		}
+
+		if (isNative) {
+			import('$lib/subscription').then(({ configureRevenueCat, isSubscribed }) => {
+				configureRevenueCat().then(() => {
+					isSubscribed().then((subbed) => {
+						if (subbed) adsRemoved = true;
+					});
+				});
+			});
+		}
+	});
 </script>
 
 <svelte:head>
@@ -19,7 +48,6 @@
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 flex flex-col">
-	<!-- Navigation -->
 	<nav class="bg-white shadow-sm border-b border-gray-200 z-50 relative">
 		<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-14">
@@ -46,6 +74,15 @@
 					>
 						Summary
 					</a>
+					{#if isNative && !adsRemoved}
+						<button
+							onclick={() => (showPaywall = true)}
+							class="px-2 py-1.5 rounded-md text-xs font-medium text-green-600 hover:bg-green-50 transition-colors flex items-center gap-1"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 008.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+							Remove Ads
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -55,3 +92,10 @@
 		{@render children()}
 	</main>
 </div>
+
+{#if isNative && showPaywall}
+	<PaywallModal onclose={() => {
+		showPaywall = false;
+		adsRemoved = getRemoveAds();
+	}} />
+{/if}

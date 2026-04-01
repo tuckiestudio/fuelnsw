@@ -7,6 +7,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	const lng = parseFloat(url.searchParams.get('lng') ?? '');
 	const fuel = url.searchParams.get('fuel') ?? 'E10';
 	const limit = parseInt(url.searchParams.get('limit') ?? '10', 10);
+	const radius = parseInt(url.searchParams.get('radius') ?? '20', 10);
 
 	if (isNaN(lat) || isNaN(lng)) {
 		return json({ error: 'lat and lng query parameters are required' }, { status: 400 });
@@ -16,7 +17,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ error: 'Invalid coordinates' }, { status: 400 });
 	}
 
-	const stations = getNearestStationsByPrice(lat, lng, fuel, Math.min(limit, 20));
+	const stations = getNearestStationsByPrice(lat, lng, fuel, Math.min(limit, 20), Math.min(radius, 20));
 
 	return json({ stations });
 };
