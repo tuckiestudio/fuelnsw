@@ -1,0 +1,191 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { FUEL_OPTIONS } from '@fuelnsw/shared/utils/fuel-types';
+	import PriceChart from '$components/station/PriceChart.svelte';
+	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
+
+	let {
+		station,
+		onclose
+	}: {
+		station: StationGeoJSON;
+		onclose?: () => void;
+	} = $props();
+
+	let sheetEl: HTMLDivElement;
+	let sheetHeight = $state(browser ? Math.round(window.innerHeight * 0.5) : 0);
+	let animated = $state(true);
+	let isMobile = $state(browser ? window.innerWidth < 640 : false);
+
+	let snapHalf = browser ? Math.round(window.innerHeight * 0.5) : 0;
+	let snapFull = browser ? Math.round(window.innerHeight * 0.9) : 0;
+	let isDragging = false;
+	let wasDrag = false;
+	let dismissing = false;
+	let dragStartY = 0;
+	let dragStartHeight = 0;
+
+	onMount(() => {
+		snapHalf = Math.round(window.innerHeight * 0.5);
+		snapFull = Math.round(window.innerHeight * 0.9);
+		sheetHeight = snapHalf;
+		animated = true;
+
+		const onResize = () => {
+			isMobile = window.innerWidth < 640;
+			snapHalf = Math.round(window.innerHeight * 0.5);
+			snapFull = Math.round(window.innerHeight * 0.9);
+		};
+		window.addEventListener('resize', onResize);
+		return () => window.removeEventListener('resize', onResize);
+	});
+
+	$effect(() => {
+		station;
+		if (snapHalf > 0) {
+			dismissing = false;
+			sheetHeight = snapHalf;
+			animated = true;
+		}
+	});
+
+	function onTouchStart(e: TouchEvent) {
+		const target = e.target as HTMLElement;
+		if (!target.closest('.sheet-handle') || dismissing) return;
+		isDragging = true;
+		wasDrag = false;
+		animated = false;
+		dragStartY = e.touches[0].clientY;
+		dragStartHeight = sheetHeight;
+		document.addEventListener('touchmove', onTouchMove, { passive: false });
+		document.addEventListener('touchend', onDragEnd);
+		document.addEventListener('touchcancel', onDragEnd);
+	}
+
+	function onTouchMove(e: TouchEvent) {
+		if (!isDragging) return;
+		e.preventDefault();
+		wasDrag = true;
+		const dy = dragStartY - e.touches[0].clientY;
+		sheetHeight = Math.max(0, Math.min(snapFull, dragStartHeight + dy));
+	}
+
+	function onDragEnd() {
+		if (!isDragging) return;
+		isDragging = false;
+		animated = true;
+		document.removeEventListener('touchmove', onTouchMove);
+		document.removeEventListener('touchend', onDragEnd);
+		document.removeEventListener('touchcancel', onDragEnd);
+
+		if (sheetHeight < snapHalf * 0.35) {
+			dismissing = true;
+			sheetHeight = 0;
+			setTimeout(() => {
+				if (dismissing) {
+					dismissing = false;
+					onclose?.();
+				}
+			}, 300);
+			return;
+		}
+
+		const midpoint = (snapHalf + snapFull) / 2;
+		sheetHeight = sheetHeight < midpoint ? snapHalf : snapFull;
+	}
+
+	function toggleSnap() {
+		if (wasDrag || dismissing) return;
+		animated = true;
+		sheetHeight = sheetHeight >= snapFull ? snapHalf : snapFull;
+	}
+</script>
+
+<svelte:head>
+	<title>{station.properties.name} — FuelNSW</title>
+</svelte:head>
+
+<div
+	class="z-[1003] bg-white shadow-xl flex flex-col
+		absolute bottom-0 left-0 right-0 rounded-t-2xl
+		sm:bottom-auto sm:top-0 sm:right-0 sm:left-auto sm:w-96 sm:h-full sm:rounded-none sm:border-l sm:border-gray-200"
+	style={isMobile ? `height: ${sheetHeight}px; transition: ${animated ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'}` : ''}
+	bind:this={sheetEl}
+>
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div
+		class="sm:hidden sheet-handle flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
+		ontouchstart={onTouchStart}
+		onclick={toggleSnap}
+	>
+		<div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+	</div>
+	<div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 shrink-0">
+		<h2 class="font-bold text-base sm:text-lg text-gray-900 truncate pr-2">{station.properties.name}</h2>
+		<button onclick={onclose} aria-label="Close panel" class="p-1 rounded-md hover:bg-gray-100 text-gray-500 shrink-0">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+		</button>
+	</div>
+	<div class="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4">
+		<div class="space-y-4">
+			<div class="grid grid-cols-2 gap-3 text-sm">
+				<div>
+					<div class="text-gray-500 text-xs">Brand</div>
+					<div class="font-medium">{station.properties.brand || 'Unknown'}</div>
+				</div>
+				<div>
+					<div class="text-gray-500 text-xs">Suburb</div>
+					<div class="font-medium">{station.properties.suburb}</div>
+				</div>
+				<div class="col-span-2">
+					<div class="text-gray-500 text-xs">Address</div>
+					<div class="font-medium">{station.properties.address}</div>
+				</div>
+			</div>
+
+			<hr class="border-gray-200">
+
+			<div>
+				<div class="text-sm font-medium text-gray-700 mb-2">Current Prices</div>
+				<div class="space-y-1">
+					{#each FUEL_OPTIONS as fuel}
+						{@const price = station.properties[fuel]}
+						{#if price}
+							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
+								<span class="text-sm">{fuel}</span>
+								<span class="font-bold text-sm">{parseFloat(price).toFixed(1)} c/L</span>
+							</div>
+						{:else}
+							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md opacity-50">
+								<span class="text-sm text-gray-500">{fuel}</span>
+								<span class="text-xs text-gray-400 italic">Not reported</span>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</div>
+
+			<hr class="border-gray-200">
+
+			<div>
+				<div class="text-sm font-medium text-gray-700 mb-2">Price History</div>
+				<div class="space-y-3">
+					{#each FUEL_OPTIONS as fuel}
+						{@const price = station.properties[fuel]}
+						{#if price}
+							<div>
+								<div class="text-xs font-medium text-gray-500 mb-1">{fuel}</div>
+								<PriceChart stationCode={station.properties.code} fuelType={fuel} />
+							</div>
+						{:else}
+							<div class="py-3 px-2.5 bg-gray-50 rounded-md text-center">
+								<div class="text-xs text-gray-400">{fuel} — Not reported by this station</div>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

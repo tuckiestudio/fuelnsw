@@ -1,13 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import PriceChart from '$components/station/PriceChart.svelte';
-	import { FUEL_OPTIONS, getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
+	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
+	import SearchBar from '$components/map/SearchBar.svelte';
+	import FuelTypeSelector from '$components/map/FuelTypeSelector.svelte';
+	import StationPanel from '$components/map/StationPanel.svelte';
+	import Legend from '$components/map/Legend.svelte';
+	import Onboarding from '$components/map/Onboarding.svelte';
+	import LocateButton from '$components/map/LocateButton.svelte';
+	import QuickFuelButton from '$components/map/QuickFuelButton.svelte';
+	import QuickFuelSheet from '$components/map/QuickFuelSheet.svelte';
+	import {
+		getFuelType,
+		setFuelType as saveFuelType,
+		getOnboarded,
+		setOnboarded,
+		getLastPosition,
+		setLastPosition
+	} from '$lib/preferences';
 
 	let mapContainer: HTMLDivElement;
 	let map: any;
-	let selectedFuelType: string = $state('E10');
+	let selectedFuelType: string = $state(getFuelType());
+	let showOnboarding = $state(!getOnboarded());
 	let selectedStation: StationGeoJSON | null = $state(null);
+	let selectedStationFullData: StationGeoJSON | null = $state(null);
 	let stations: StationGeoJSON[] = $state([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -17,25 +34,32 @@
 	let searchQuery: string = $state('');
 	let showSuggestions: boolean = $state(false);
 	let postcodeBoundary: any = null;
-	let allLocations: { postcode: string; suburb: string }[] = [];
-	let selectedStationFullData: StationGeoJSON | null = $state(null);
+	let allLocations: { postcode: string; suburb: string; lat: number; lng: number }[] = [];
+	let userMarker: any = null;
+	let userPosition: { lat: number; lng: number } | null = $state(null);
+	let showQuickFuel = $state(false);
+	let quickFuelLoading = $state(false);
+	let quickFuelStations: any[] = $state([]);
+	let isMobile = $state(true);
 
 	function escapeHtml(str: string): string {
 		return str
 			.replace(/&/g, '&amp;')
 			.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
+			.replace(/>/g, '&gt;')
 			.replace(/"/g, '&quot;')
 			.replace(/'/g, '&#39;');
 	}
 
 	let suggestions = $derived(
 		searchQuery.trim().length >= 1
-			? allLocations.filter(
-					(loc) =>
-						loc.postcode.startsWith(searchQuery.trim()) ||
-						loc.suburb.toLowerCase().includes(searchQuery.trim().toLowerCase())
-				).slice(0, 8)
+			? allLocations
+					.filter(
+						(loc) =>
+							loc.postcode.startsWith(searchQuery.trim()) ||
+							loc.suburb.toLowerCase().includes(searchQuery.trim().toLowerCase())
+					)
+					.slice(0, 8)
 			: []
 	);
 
@@ -51,6 +75,9 @@
 			: stations
 	);
 
+	let resolvedStation = $derived(selectedStationFullData || selectedStation);
+	let hideMobileControls = $derived((!!resolvedStation || showQuickFuel) && isMobile);
+
 	async function loadLocations() {
 		try {
 			const res = await fetch('/api/fuel/stations');
@@ -61,13 +88,20 @@
 				const key = `${s.properties.postcode}-${s.properties.suburb}`;
 				if (!seen.has(key) && s.properties.postcode) {
 					seen.add(key);
-					allLocations.push({ postcode: s.properties.postcode, suburb: s.properties.suburb });
+					const lat = s.geometry.coordinates[1];
+					const lng = s.geometry.coordinates[0];
+					if (Math.abs(lat) > 1 && Math.abs(lng) > 1) {
+						allLocations.push({
+							postcode: s.properties.postcode,
+							suburb: s.properties.suburb,
+							lat,
+							lng
+						});
+					}
 				}
 			}
 			allLocations.sort((a, b) => a.postcode.localeCompare(b.postcode));
-		} catch {
-			// locations are best-effort for suggestions
-		}
+		} catch {}
 	}
 
 	async function loadViewportStations() {
@@ -116,24 +150,22 @@
 	}
 
 	async function initMap() {
+		await import('leaflet/dist/leaflet.css');
 		L = (await import('leaflet')).default;
 		await import('leaflet.markercluster');
 
-		const leafletCss = document.createElement('link');
-		leafletCss.rel = 'stylesheet';
-		leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-		document.head.appendChild(leafletCss);
+		const savedPos = getLastPosition();
+		const center = savedPos ? [savedPos.lat, savedPos.lng] : [-33.8, 151.2];
+		const zoom = savedPos ? 14 : 10;
 
-		map = L.map(mapContainer, {
-			center: [-33.8, 151.2],
-			zoom: 10,
-			zoomControl: true
-		});
+		map = L.map(mapContainer, { center, zoom, zoomControl: false });
 
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '&copy; OpenStreetMap contributors',
 			maxZoom: 18
 		}).addTo(map);
+
+		L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 		clusterLayer = L.markerClusterGroup({
 			maxClusterRadius: 50,
@@ -144,8 +176,13 @@
 				const count = cluster.getChildCount();
 				let size = 'small';
 				let dim = 40;
-				if (count > 100) { size = 'large'; dim = 56; }
-				else if (count > 30) { size = 'medium'; dim = 48; }
+				if (count > 100) {
+					size = 'large';
+					dim = 56;
+				} else if (count > 30) {
+					size = 'medium';
+					dim = 48;
+				}
 				return L.divIcon({
 					html: `<div><span>${count}</span></div>`,
 					className: `marker-cluster marker-cluster-${size}`,
@@ -206,8 +243,16 @@
 		}
 	}
 
+	function completeOnboarding(fuelType: string) {
+		selectedFuelType = fuelType;
+		saveFuelType(fuelType);
+		setOnboarded();
+		showOnboarding = false;
+	}
+
 	async function onFuelTypeChange(fuelType: string) {
 		selectedFuelType = fuelType;
+		saveFuelType(fuelType);
 		selectedStationFullData = null;
 		await loadViewportStations();
 	}
@@ -217,7 +262,13 @@
 		selectedStationFullData = null;
 	}
 
+	function closeAllPanels() {
+		showQuickFuel = false;
+		closePanel();
+	}
+
 	async function selectStation(station: StationGeoJSON) {
+		showQuickFuel = false;
 		selectedStation = station;
 		selectedStationFullData = null;
 		try {
@@ -229,10 +280,13 @@
 						...station,
 						properties: {
 							...station.properties,
-							...data.prices.reduce((acc: Record<string, string>, p: { fuel_type: string; price: number }) => {
-								acc[p.fuel_type] = String(p.price);
-								return acc;
-							}, {})
+							...data.prices.reduce(
+								(acc: Record<string, string>, p: { fuel_type: string; price: number }) => {
+									acc[p.fuel_type] = String(p.price);
+									return acc;
+								},
+								{}
+							)
 						}
 					};
 				} else {
@@ -257,14 +311,12 @@
 	async function fetchPostcodeBoundary(postcode: string) {
 		if (!L || !map) return;
 		clearPostcodeBoundary();
-
 		try {
 			const res = await fetch(`/api/postcode-boundary?postcode=${postcode}`);
 			if (!res.ok) return;
 			const data = await res.json();
 			const outlines: [number, number][][] = data.outlines || [];
 			if (outlines.length === 0) return;
-
 			postcodeBoundary = L.layerGroup();
 			for (const coords of outlines) {
 				L.polygon(coords, {
@@ -276,9 +328,7 @@
 				}).addTo(postcodeBoundary);
 			}
 			postcodeBoundary.addTo(map);
-		} catch {
-			// best-effort
-		}
+		} catch {}
 	}
 
 	function flyToResults() {
@@ -312,14 +362,21 @@
 	}
 
 	function selectSuggestion(postcode: string) {
-		searchQuery = postcode;
 		showSuggestions = false;
-		updatePriceRange();
-		renderMarkers();
-		flyToResults();
+
+		const loc = allLocations.find(
+			(l) => l.postcode === postcode || l.suburb.toLowerCase() === postcode.toLowerCase()
+		);
+
+		if (loc && map) {
+			map.flyTo([loc.lat, loc.lng], 14, { duration: 0.8 });
+		}
+
 		if (/^\d{4}$/.test(postcode)) {
 			fetchPostcodeBoundary(postcode);
 		}
+
+		searchQuery = '';
 	}
 
 	function clearSearch() {
@@ -331,209 +388,278 @@
 		map?.flyTo([-33.8, 151.2], 10, { duration: 0.8 });
 	}
 
-	onMount(async () => {
-		try {
-			loadLocations();
-			await initMap();
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load map data';
-			loading = false;
+	async function openQuickFuel() {
+		closePanel();
+		if (!userPosition) {
+			quickFuelLoading = true;
+			locateMe(() => {
+				if (userPosition) {
+					fetchQuickFuel();
+				} else {
+					quickFuelLoading = false;
+					error = 'Could not determine your location';
+				}
+			});
+			return;
 		}
+		await fetchQuickFuel();
+	}
+
+	async function fetchQuickFuel() {
+		if (!userPosition) return;
+		quickFuelLoading = true;
+		showQuickFuel = false;
+		try {
+			const params = new URLSearchParams({
+				lat: String(userPosition.lat),
+				lng: String(userPosition.lng),
+				fuel: selectedFuelType,
+				limit: '10'
+			});
+			const res = await fetch(`/api/fuel/stations/nearest?${params}`);
+			if (res.ok) {
+				const data = await res.json();
+				quickFuelStations = data.stations || [];
+				if (quickFuelStations.length > 0) {
+					showQuickFuel = true;
+				} else {
+					error = `No ${selectedFuelType} stations found nearby`;
+				}
+			} else {
+				error = 'Failed to find nearby stations';
+			}
+		} catch {
+			error = 'Failed to find nearby stations';
+		}
+		quickFuelLoading = false;
+	}
+
+	async function fallbackLocation(): Promise<{ lat: number; lng: number } | null> {
+		try {
+			const res = await fetch('/api/geolocate');
+			if (res.ok) {
+				const data = await res.json();
+				if (data.lat && data.lng) {
+					return { lat: data.lat, lng: data.lng };
+				}
+			}
+		} catch {}
+		return null;
+	}
+
+	function applyPosition(lat: number, lng: number, callback?: () => void) {
+		userPosition = { lat, lng };
+		setLastPosition(lat, lng);
+		updateUserMarker();
+		if (map) map.flyTo([lat, lng], 14, { duration: 0.8 });
+		callback?.();
+	}
+
+	function requestLocation() {
+		if (!navigator.geolocation) {
+			fallbackLocation().then((pos) => {
+				if (pos) applyPosition(pos.lat, pos.lng);
+			});
+			return;
+		}
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				applyPosition(pos.coords.latitude, pos.coords.longitude);
+			},
+			async () => {
+				const pos = await fallbackLocation();
+				if (pos) applyPosition(pos.lat, pos.lng);
+			}
+		);
+	}
+
+	function locateMe(callback?: () => void) {
+		if (!navigator.geolocation) {
+			fallbackLocation().then((pos) => {
+				if (pos) applyPosition(pos.lat, pos.lng, callback);
+			});
+			return;
+		}
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				applyPosition(pos.coords.latitude, pos.coords.longitude, callback);
+			},
+			async () => {
+				const pos = await fallbackLocation();
+				if (pos) applyPosition(pos.lat, pos.lng, callback);
+			}
+		);
+	}
+
+	function updateUserMarker() {
+		if (!L || !map || !userPosition) return;
+		if (userMarker) userMarker.remove();
+		userMarker = L.circleMarker([userPosition.lat, userPosition.lng], {
+			radius: 8,
+			fillColor: '#3b82f6',
+			fillOpacity: 1,
+			color: '#ffffff',
+			weight: 3,
+			opacity: 1
+		}).addTo(map);
+	}
+
+	onMount(() => {
+		isMobile = window.innerWidth < 640;
+		const onResize = () => {
+			isMobile = window.innerWidth < 640;
+		};
+		window.addEventListener('resize', onResize);
+
+		(async () => {
+			try {
+				loadLocations();
+				await initMap();
+				requestLocation();
+			} catch (e) {
+				error = e instanceof Error ? e.message : 'Failed to load map data';
+				loading = false;
+			}
+		})();
+
+		return () => window.removeEventListener('resize', onResize);
 	});
 </script>
 
 <svelte:head>
 	<title>FuelNSW — Live NSW Fuel Price Map</title>
-	<meta name="description" content="Real-time NSW fuel prices on an interactive map. Compare E10, Unleaded, Premium 95/98, Diesel and more across all NSW service stations." />
+	<meta
+		name="description"
+		content="Real-time NSW fuel prices on an interactive map. Compare E10, Unleaded, Premium 95/98, Diesel and more across all NSW service stations."
+	/>
 	<meta property="og:title" content="FuelNSW — Live NSW Fuel Price Map" />
-	<meta property="og:description" content="Real-time NSW fuel prices on an interactive map. Compare prices across all NSW service stations." />
+	<meta
+		property="og:description"
+		content="Real-time NSW fuel prices on an interactive map. Compare prices across all NSW service stations."
+	/>
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="relative flex h-[calc(100vh-3.5rem)]">
-	<!-- Controls row -->
-	<div class="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-start gap-2">
-		<!-- Search bar -->
-		<div class="flex flex-col gap-1 shrink-0">
-			<div class="flex items-center gap-2 bg-white rounded-lg shadow-lg px-3 py-2">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-				<input
-					type="text"
-					placeholder="Postcode or suburb..."
-					bind:value={searchQuery}
-					oninput={onSearchInput}
-					onfocus={() => (showSuggestions = true)}
-					onblur={() => setTimeout(() => (showSuggestions = false), 200)}
-					class="w-36 text-sm outline-none bg-transparent placeholder-gray-400"
-				/>
-				{#if searchQuery}
-					<button onclick={clearSearch} aria-label="Clear search" class="text-gray-400 hover:text-gray-600 shrink-0">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
-					</button>
-				{/if}
-			</div>
-			{#if showSuggestions && suggestions.length > 0}
-				<div class="bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto">
-					{#each suggestions as loc}
-						<button
-							onclick={() => selectSuggestion(loc.postcode)}
-							class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 border-b border-gray-100 last:border-0"
-						>
-							<span class="font-mono font-medium text-gray-700">{loc.postcode}</span>
-							<span class="text-gray-500 truncate">{loc.suburb}</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
-			{#if searchQuery.trim() && !showSuggestions}
-				<div class="bg-white rounded-lg shadow-lg px-3 py-1.5 text-xs text-gray-600">
-					{filteredStations.length} station{filteredStations.length !== 1 ? 's' : ''} found
-				</div>
-			{/if}
-		</div>
-
-		<!-- Fuel type filter bar -->
-		<div class="flex gap-1 bg-white rounded-lg shadow-lg px-2 py-1.5 overflow-x-auto">
-		{#each FUEL_OPTIONS as fuel}
-			<button
-				onclick={() => onFuelTypeChange(fuel)}
-				class="px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap {selectedFuelType === fuel
-					? 'bg-green-600 text-white'
-					: 'text-gray-600 hover:bg-gray-100'}"
-			>
-				{fuel}
-			</button>
-		{/each}
-		</div>
+	<!-- Desktop: search + fuel type at top -->
+	<div
+		class="hidden sm:flex absolute top-3 left-1/2 -translate-x-1/2 z-[1000] items-start gap-2"
+	>
+		<SearchBar
+			bind:value={searchQuery}
+			{suggestions}
+			{showSuggestions}
+			resultCount={filteredStations.length}
+			oninput={onSearchInput}
+			onselect={selectSuggestion}
+			onclear={clearSearch}
+			onfocus={() => (showSuggestions = true)}
+			onblur={() => setTimeout(() => (showSuggestions = false), 200)}
+		/>
+		<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
 	</div>
 
-	<!-- Price legend -->
-	{#if priceRange.min !== priceRange.max}
-		<div class="absolute bottom-6 left-3 z-[1000] bg-white rounded-lg shadow-lg p-3 text-xs">
-			<div class="font-medium mb-1.5 text-gray-700">{selectedFuelType} Prices</div>
-			<div class="flex items-center gap-1.5">
-				<span class="text-green-600 font-medium">{priceRange.min.toFixed(1)}</span>
-				<div class="w-20 h-2 rounded bg-gradient-to-r from-green-500 via-yellow-500 via-orange-400 to-red-500"></div>
-				<span class="text-red-600 font-medium">{priceRange.max.toFixed(1)}</span>
-			</div>
+	<!-- Mobile: search at top (hidden when panel open) -->
+	{#if !hideMobileControls}
+		<div class="sm:hidden absolute top-3 left-3 right-3 z-[1000]">
+			<SearchBar
+				bind:value={searchQuery}
+				{suggestions}
+				{showSuggestions}
+				resultCount={filteredStations.length}
+				oninput={onSearchInput}
+				onselect={selectSuggestion}
+				onclear={clearSearch}
+				onfocus={() => (showSuggestions = true)}
+				onblur={() => setTimeout(() => (showSuggestions = false), 200)}
+			/>
 		</div>
 	{/if}
 
-	<!-- Map -->
+	<!-- Mobile: fuel type at bottom (hidden when panel open) -->
+	{#if !hideMobileControls}
+		<div
+			class="sm:hidden absolute bottom-20 left-3 right-16 z-[1000] overflow-x-auto"
+		>
+			<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
+		</div>
+	{/if}
+
+	{#if !hideMobileControls}
+		<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
+	{/if}
+
+	{#if !hideMobileControls}
+		<LocateButton onclick={() => locateMe()} />
+	{/if}
+
+	{#if !hideMobileControls && !showSuggestions}
+		<QuickFuelButton onclick={openQuickFuel} loading={quickFuelLoading} />
+	{/if}
+
 	<div bind:this={mapContainer} class="flex-1"></div>
 
-	<!-- Loading overlay -->
 	{#if loading}
-		<div class="absolute inset-0 flex items-center justify-center bg-white/80 z-[1001]">
+		<div class="absolute inset-0 flex items-center justify-center bg-white/80 z-[1004]">
 			<div class="flex items-center gap-2 text-gray-600">
-				<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+				<svg
+					class="animate-spin h-4 w-4"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					><circle
+						class="opacity-25"
+						cx="12"
+						cy="12"
+						r="10"
+						stroke="currentColor"
+						stroke-width="4"
+					/><path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+					/></svg
+				>
 				Loading fuel prices...
 			</div>
 		</div>
 	{/if}
 
-	<!-- Error -->
 	{#if error}
-		<div class="absolute top-16 left-1/2 -translate-x-1/2 z-[1001] bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm max-w-md text-center">
+		<div
+			class="absolute top-16 left-1/2 -translate-x-1/2 z-[1004] bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm max-w-md text-center"
+		>
 			{error}
 			<button onclick={() => (error = '')} class="ml-2 font-bold">&times;</button>
 		</div>
 	{/if}
 
-	<!-- Backdrop (mobile only) -->
-	{#if selectedStation}
+	{#if (resolvedStation || showQuickFuel) && isMobile}
 		<div
-			class="sm:hidden absolute inset-0 bg-black/30 z-[999]"
+			class="absolute inset-0 bg-black/30 z-[1002]"
 			role="button"
 			aria-label="Close panel"
 			tabindex="0"
-			onclick={closePanel}
-			onkeydown={(e) => e.key === 'Escape' && closePanel()}
+			onclick={closeAllPanels}
+			onkeydown={(e) => e.key === 'Escape' && closeAllPanels()}
 		></div>
 	{/if}
 
-	<!-- Station detail panel -->
-	{#if selectedStation}
-		{@const station = selectedStationFullData || selectedStation}
-		<div class="absolute right-0 top-0 bg-white shadow-xl z-[1000] flex flex-col border-l border-gray-200
-			bottom-0 left-0 sm:left-auto max-h-[70vh] rounded-t-xl sm:max-h-none sm:rounded-none sm:w-96 sm:h-full">
-			<!-- Header -->
-			<div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 shrink-0">
-				<h2 class="font-bold text-base sm:text-lg text-gray-900 truncate pr-2">{station.properties.name}</h2>
-				<button onclick={closePanel} aria-label="Close panel" class="p-1 rounded-md hover:bg-gray-100 text-gray-500 shrink-0">
-					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-				</button>
-			</div>
-			<!-- Drag handle (mobile) -->
-			<div class="sm:hidden flex justify-center pt-1 pb-0 shrink-0">
-				<div class="w-10 h-1 bg-gray-300 rounded-full"></div>
-			</div>
-			<div class="p-3 sm:p-4 overflow-y-auto flex-1">
-				<div class="space-y-4">
-					<!-- Station info -->
-					<div class="grid grid-cols-2 gap-3 text-sm">
-						<div>
-							<div class="text-gray-500 text-xs">Brand</div>
-							<div class="font-medium">{station.properties.brand || 'Unknown'}</div>
-						</div>
-						<div>
-							<div class="text-gray-500 text-xs">Suburb</div>
-							<div class="font-medium">{station.properties.suburb}</div>
-						</div>
-						<div class="col-span-2">
-							<div class="text-gray-500 text-xs">Address</div>
-							<div class="font-medium">{station.properties.address}</div>
-						</div>
-					</div>
+	{#if resolvedStation}
+		<StationPanel station={resolvedStation} onclose={closePanel} />
+	{/if}
 
-					<hr class="border-gray-200">
+	{#if showQuickFuel}
+		<QuickFuelSheet
+			stations={quickFuelStations}
+			fuelType={selectedFuelType}
+			onclose={() => (showQuickFuel = false)}
+		/>
+	{/if}
 
-					<!-- Current prices -->
-					<div>
-						<div class="text-sm font-medium text-gray-700 mb-2">Current Prices</div>
-						<div class="space-y-1">
-							{#each FUEL_OPTIONS as fuel}
-								{@const price = station.properties[fuel]}
-								{#if price}
-									<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
-										<span class="text-sm">{fuel}</span>
-										<span class="font-bold text-sm">{parseFloat(price).toFixed(1)} c/L</span>
-									</div>
-								{:else}
-									<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md opacity-50">
-										<span class="text-sm text-gray-500">{fuel}</span>
-										<span class="text-xs text-gray-400 italic">Not reported</span>
-									</div>
-								{/if}
-							{/each}
-						</div>
-					</div>
-
-					<hr class="border-gray-200">
-
-					<!-- Historical price charts -->
-					<div>
-						<div class="text-sm font-medium text-gray-700 mb-2">Price History</div>
-						<div class="space-y-3">
-							{#each FUEL_OPTIONS as fuel}
-								{@const price = station.properties[fuel]}
-								{#if price}
-									<div>
-										<div class="text-xs font-medium text-gray-500 mb-1">{fuel}</div>
-										<PriceChart stationCode={station.properties.code} fuelType={fuel} />
-									</div>
-								{:else}
-									<div class="py-3 px-2.5 bg-gray-50 rounded-md text-center">
-										<div class="text-xs text-gray-400">{fuel} — Not reported by this station</div>
-									</div>
-								{/if}
-							{/each}
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+	{#if showOnboarding}
+		<Onboarding onselect={completeOnboarding} />
 	{/if}
 </div>
 
@@ -546,8 +672,8 @@
 		border-radius: 8px;
 		white-space: nowrap;
 		text-align: center;
-		border: 1px solid rgba(0,0,0,0.2);
-		box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+		border: 1px solid rgba(0, 0, 0, 0.2);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 		line-height: 1.4;
 	}
 

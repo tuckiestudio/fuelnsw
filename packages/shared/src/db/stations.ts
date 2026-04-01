@@ -160,3 +160,60 @@ function buildGeoJSON(rows: StationPriceRow[]): StationGeoJSON[] {
 
 	return Array.from(stationMap.values());
 }
+
+export interface NearestStation {
+	code: string;
+	name: string;
+	brand: string;
+	suburb: string;
+	address: string;
+	postcode: string;
+	latitude: number;
+	longitude: number;
+	price: number;
+	distance_km: number;
+	drive_minutes: number;
+}
+
+export function getNearestStationsByPrice(
+	lat: number,
+	lng: number,
+	fuelType: string,
+	limit = 10
+): NearestStation[] {
+	const db = getDb();
+	const queryLimit = Math.max(limit * 50, 500);
+	const rows = db.prepare(`
+		SELECT
+			s.code,
+			s.name,
+			s.brand,
+			s.suburb,
+			s.address,
+			s.postcode,
+			s.latitude,
+			s.longitude,
+			lp.price,
+			(6371 * acos(
+				MIN(1, cos(radians(?)) * cos(radians(s.latitude)) *
+				cos(radians(s.longitude) - radians(?)) +
+				sin(radians(?)) * sin(radians(s.latitude)))
+			)) AS distance_km
+		FROM stations s
+		JOIN live_prices lp ON lp.station_code = s.code
+		WHERE lp.fuel_type = ?
+		  AND lp.price IS NOT NULL
+		  AND s.latitude IS NOT NULL
+		  AND s.longitude IS NOT NULL
+		ORDER BY lp.price ASC
+		LIMIT ?
+	`).all(lat, lng, lat, fuelType, queryLimit) as NearestStation[];
+
+	return rows
+		.filter(r => r.distance_km <= 20)
+		.slice(0, limit)
+		.map(r => ({
+			...r,
+			drive_minutes: Math.round(r.distance_km / 0.5)
+		}));
+}
