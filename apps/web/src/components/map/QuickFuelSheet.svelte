@@ -2,6 +2,15 @@
 	import { navigateTo } from '$lib/navigation';
 	import { maybeShowInterstitial } from '$lib/ads';
 	import { getRemoveAds } from '$lib/preferences';
+	import { Capacitor } from '@capacitor/core';
+
+	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
+		if (!Capacitor.isNativePlatform()) return;
+		try {
+			const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+			await Haptics.impact({ style: ImpactStyle[style] });
+		} catch {}
+	}
 
 	interface NearestStation {
 		code: string;
@@ -30,6 +39,7 @@
 	let adsRemoved = $state(getRemoveAds());
 
 	async function handleNavigate(station: NearestStation) {
+		hapticImpact('Medium');
 		await maybeShowInterstitial();
 		await navigateTo(station.latitude, station.longitude, station.name);
 	}

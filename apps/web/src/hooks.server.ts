@@ -62,7 +62,7 @@ const securityHeaders: Record<string, string> = {
 	'X-Frame-Options': 'SAMEORIGIN',
 	'X-Content-Type-Options': 'nosniff',
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
-	'Content-Security-Policy': [
+	'Content-Security-Policy-Report-Only': [
 		"default-src 'self'",
 		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
 		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",

@@ -6,6 +6,15 @@
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
 	import { maybeShowInterstitial } from '$lib/ads';
 	import { getRemoveAds } from '$lib/preferences';
+	import { Capacitor } from '@capacitor/core';
+
+	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
+		if (!Capacitor.isNativePlatform()) return;
+		try {
+			const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+			await Haptics.impact({ style: ImpactStyle[style] });
+		} catch {}
+	}
 
 	let {
 		station,
@@ -53,6 +62,7 @@
 			dismissing = false;
 			sheetHeight = snapHalf;
 			animated = true;
+			hapticImpact('Medium');
 		}
 	});
 
@@ -88,6 +98,7 @@
 		if (sheetHeight < snapHalf * 0.35) {
 			dismissing = true;
 			sheetHeight = 0;
+			hapticImpact('Light');
 			setTimeout(() => {
 				if (dismissing) {
 					dismissing = false;
@@ -111,6 +122,7 @@
 			await maybeShowInterstitial();
 		}
 		sheetHeight = sheetHeight >= snapFull ? snapHalf : snapFull;
+		hapticImpact('Light');
 	}
 </script>
 
