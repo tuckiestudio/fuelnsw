@@ -1,0 +1,17 @@
+{
+	"name": "@fuelnsw/shared",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"dependencies": {
+		"better-sqlite3": "^12.8.0",
+		"dotenv": "^17.3.1",
+		"xlsx": "^0.18.5",
+		"node-cache": "^5.1.2"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "^7.6.13"
+	}
+}

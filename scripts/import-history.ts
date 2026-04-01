@@ -16,8 +16,8 @@
  *   npx tsx scripts/import-history.ts --xlsx-only   # Only download/parse XLSX files
  */
 
-import { getDb } from '../src/lib/db/client.js';
-import { initializeSchema } from '../src/lib/db/schema.js';
+import { getDb } from '../packages/shared/src/db/client.js';
+import { initializeSchema } from '../packages/shared/src/db/schema.js';
 import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';

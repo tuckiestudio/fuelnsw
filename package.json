@@ -1,41 +1,27 @@
 {
-	"name": "fuelnsw",
+	"name": "ausfuel",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"apps/*"
+	],
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"dev:web": "npm run dev --workspace=web",
+		"dev:dashboard": "npm run dev --workspace=dashboard",
+		"build:web": "npm run build --workspace=web",
+		"build:dashboard": "npm run build --workspace=dashboard",
+		"preview:web": "npm run preview --workspace=web",
+		"preview:dashboard": "npm run preview --workspace=dashboard",
+		"check:web": "npm run check --workspace=web",
+		"check:dashboard": "npm run check --workspace=dashboard",
 		"import:history": "tsx scripts/import-history.ts",
 		"import:history:dry": "tsx scripts/import-history.ts --dry-run",
 		"import:history:api": "tsx scripts/import-history.ts --api-only",
 		"import:history:xlsx": "tsx scripts/import-history.ts --xlsx-only"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^7.0.0",
-		"@sveltejs/adapter-node": "^5.5.4",
-		"@sveltejs/kit": "^2.50.2",
-		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"@tailwindcss/vite": "^4.2.2",
-		"@types/better-sqlite3": "^7.6.13",
-		"@types/leaflet": "^1.9.21",
-		"@types/leaflet.markercluster": "^1.5.6",
-		"svelte": "^5.54.0",
-		"svelte-check": "^4.4.2",
-		"tailwindcss": "^4.2.2",
-		"typescript": "^5.9.3",
-		"vite": "^7.3.1"
-	},
-	"dependencies": {
-		"better-sqlite3": "^12.8.0",
-		"chart.js": "^4.5.1",
-		"dotenv": "^17.3.1",
-		"leaflet": "^1.9.4",
-		"leaflet.markercluster": "^1.5.3",
-		"xlsx": "^0.18.5"
+		"tsx": "^4.19.0"
 	}
 }
