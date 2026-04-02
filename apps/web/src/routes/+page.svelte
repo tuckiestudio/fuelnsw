@@ -583,34 +583,41 @@
 		<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
 	</div>
 
-	<!-- Mobile: search at top (hidden when panel open) -->
+	<!-- Mobile: search + fuel dropdown + legend at top -->
 	{#if !hideMobileControls}
 		<div class="sm:hidden absolute top-3 left-3 right-3 z-[1000]">
-			<SearchBar
-				bind:value={searchQuery}
-				{suggestions}
-				{showSuggestions}
-				resultCount={filteredStations.length}
-				oninput={onSearchInput}
-				onselect={selectSuggestion}
-				onclear={clearSearch}
-				onfocus={() => (showSuggestions = true)}
-				onblur={() => setTimeout(() => (showSuggestions = false), 200)}
-			/>
+			<div class="flex items-start gap-2">
+				<div class="flex-1 min-w-0">
+					<SearchBar
+						fluid
+						bind:value={searchQuery}
+						{suggestions}
+						{showSuggestions}
+						resultCount={filteredStations.length}
+						oninput={onSearchInput}
+						onselect={selectSuggestion}
+						onclear={clearSearch}
+						onfocus={() => (showSuggestions = true)}
+						onblur={() => setTimeout(() => (showSuggestions = false), 200)}
+					/>
+				</div>
+				<FuelTypeSelector
+					selected={selectedFuelType}
+					onchange={onFuelTypeChange}
+					variant="dropdown"
+				/>
+			</div>
+			<div class="mt-2">
+				<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
+			</div>
 		</div>
 	{/if}
 
-	<!-- Mobile: fuel type at bottom (hidden when panel open) -->
+	<!-- Desktop: legend at bottom-left -->
 	{#if !hideMobileControls}
-		<div
-			class="sm:hidden absolute bottom-20 left-3 right-16 z-[1000] overflow-x-auto"
-		>
-			<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
+		<div class="hidden sm:block absolute bottom-6 left-3 z-[1000]">
+			<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 		</div>
-	{/if}
-
-	{#if !hideMobileControls}
-		<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 	{/if}
 
 	{#if !hideMobileControls}

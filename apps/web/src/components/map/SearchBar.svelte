@@ -8,7 +8,8 @@
 		onselect,
 		onclear,
 		onfocus,
-		onblur
+		onblur,
+		fluid = false
 	}: {
 		value: string;
 		suggestions: { postcode: string; suburb: string }[];
@@ -19,6 +20,7 @@
 		onclear?: () => void;
 		onfocus?: () => void;
 		onblur?: () => void;
+		fluid?: boolean;
 	} = $props();
 </script>
 
@@ -32,7 +34,7 @@
 			oninput={oninput}
 			onfocus={onfocus}
 			onblur={onblur}
-			class="w-36 text-sm outline-none bg-transparent placeholder-gray-400"
+			class="{fluid ? 'flex-1 min-w-0' : 'w-36'} text-sm outline-none bg-transparent placeholder-gray-400"
 		/>
 		{#if value}
 			<button onclick={onclear} aria-label="Clear search" class="text-gray-400 hover:text-gray-600 shrink-0">
