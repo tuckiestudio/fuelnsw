@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
+	import { Capacitor } from '@capacitor/core';
 	import SearchBar from '$components/map/SearchBar.svelte';
 	import FuelTypeSelector from '$components/map/FuelTypeSelector.svelte';
 	import StationPanel from '$components/map/StationPanel.svelte';
@@ -478,11 +479,26 @@
 		callback?.();
 	}
 
-	function requestLocation() {
+	async function getNativePosition(): Promise<{ lat: number; lng: number } | null> {
+		if (!Capacitor.isNativePlatform()) return null;
+		try {
+			const { Geolocation } = await import('@capacitor/geolocation');
+			const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+			return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+		} catch {
+			return null;
+		}
+	}
+
+	async function requestLocation() {
+		const nativePos = await getNativePosition();
+		if (nativePos) {
+			applyPosition(nativePos.lat, nativePos.lng);
+			return;
+		}
 		if (!navigator.geolocation) {
-			fallbackLocation().then((pos) => {
-				if (pos) applyPosition(pos.lat, pos.lng);
-			});
+			const pos = await fallbackLocation();
+			if (pos) applyPosition(pos.lat, pos.lng);
 			return;
 		}
 		navigator.geolocation.getCurrentPosition(
@@ -496,11 +512,15 @@
 		);
 	}
 
-	function locateMe(callback?: () => void) {
+	async function locateMe(callback?: () => void) {
+		const nativePos = await getNativePosition();
+		if (nativePos) {
+			applyPosition(nativePos.lat, nativePos.lng, callback);
+			return;
+		}
 		if (!navigator.geolocation) {
-			fallbackLocation().then((pos) => {
-				if (pos) applyPosition(pos.lat, pos.lng, callback);
-			});
+			const pos = await fallbackLocation();
+			if (pos) applyPosition(pos.lat, pos.lng, callback);
 			return;
 		}
 		navigator.geolocation.getCurrentPosition(
