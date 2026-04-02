@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { getDb } from './client.js';
 import type { LivePrice, HistoricalPrice } from '../api/types.js';
+import { sydneyDate } from '../utils/date.js';
 
 const UPSERT_LIVE_PRICE = `
 	INSERT INTO live_prices (station_code, fuel_type, price, last_updated, fetched_at)
@@ -33,7 +34,7 @@ export function savePricesAndSnapshot(prices: Array<{
 	lastupdated: string;
 }>): void {
 	const db = getDb();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = sydneyDate();
 
 	const liveStmt = db.prepare(UPSERT_LIVE_PRICE);
 	const histStmt = db.prepare(UPSERT_HISTORICAL);
@@ -147,7 +148,7 @@ export function getHistoricalPrices(
 			.prepare('SELECT price, last_updated FROM live_prices WHERE station_code = ? AND fuel_type = ?')
 			.get(stationCode, fuelType) as { price: number; last_updated: string } | undefined;
 		if (live && live.price != null) {
-			const today = new Date().toISOString().slice(0, 10);
+			const today = sydneyDate();
 			const lastHistDate = results.length > 0 ? results[results.length - 1].price_updated : '';
 			if (today >= lastHistDate) {
 				const hasToday = results.some(r => r.price_updated === today);

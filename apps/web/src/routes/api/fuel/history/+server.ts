@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getDb } from '@fuelnsw/shared/db/client';
+import { sydneyDate } from '@fuelnsw/shared/utils/date';
 
 const FUEL_MAP: Record<string, string[]> = {
 	'E10': ['E10'],
@@ -42,7 +43,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		const fuelTypes = fuelType ? (FUEL_MAP[fuelType] || [fuelType]) : null;
 		const oneYearAgo = new Date();
 		oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-		const fromStr = oneYearAgo.toISOString().slice(0, 10);
+		const fromStr = oneYearAgo.toLocaleDateString('sv-SE', { timeZone: 'Australia/Sydney' });
 
 		const stationCodes = [station];
 		if (/^\d+$/.test(station)) {
@@ -75,8 +76,8 @@ export const GET: RequestHandler = async ({ url }) => {
 		if (fuelType && /^\d+$/.test(station)) {
 			const live = getStmt(db, 'live', 'SELECT price FROM live_prices WHERE station_code = ? AND fuel_type = ?').get(station, fuelType) as { price: number } | undefined;
 			if (live && live.price != null) {
-				const today = new Date().toISOString().slice(0, 10);
-				const todayMonth = today.substring(0, 7);
+			const today = sydneyDate();
+			const todayMonth = today.substring(0, 7);
 				const lastMonth = results.length > 0 ? results[results.length - 1].price_updated.substring(0, 7) : '';
 				if (todayMonth !== lastMonth) {
 					results.push({ price_updated: today, price: Math.round(live.price * 10) / 10 });
