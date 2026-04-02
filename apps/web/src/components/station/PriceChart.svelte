@@ -131,7 +131,7 @@
 									const index = ctx.dataIndex;
 									const date = dates[index];
 									const dateStr = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' });
-									return `${dateStr}: ${val.toFixed(1)} c/L`;
+									return `${dateStr}: ${(val as number).toFixed(1)} c/L`;
 								}
 							}
 						}

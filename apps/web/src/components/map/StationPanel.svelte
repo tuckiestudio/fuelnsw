@@ -144,6 +144,8 @@
 	{/if}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
+		role="button"
+		tabindex="0"
 		class="sm:hidden sheet-handle flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
 		ontouchstart={onTouchStart}
 		onclick={toggleSnap}

@@ -39,6 +39,7 @@
 	let allLocations: { postcode: string; suburb: string; lat: number; lng: number }[] = [];
 	let userMarker: any = null;
 	let userPosition: { lat: number; lng: number } | null = $state(null);
+	let searchedLocation: { lat: number; lng: number } | null = $state(null);
 	let showQuickFuel = $state(false);
 	let quickFuelLoading = $state(false);
 	let quickFuelStations: any[] = $state([]);
@@ -387,6 +388,7 @@
 
 		if (loc && map) {
 			map.flyTo([loc.lat, loc.lng], 14, { duration: 0.8 });
+			searchedLocation = { lat: loc.lat, lng: loc.lng };
 		}
 
 		if (/^\d{4}$/.test(postcode)) {
@@ -399,6 +401,7 @@
 	function clearSearch() {
 		searchQuery = '';
 		showSuggestions = false;
+		searchedLocation = null;
 		clearPostcodeBoundary();
 		updatePriceRange();
 		renderMarkers();
@@ -407,31 +410,31 @@
 
 	async function openQuickFuel() {
 		closePanel();
-		if (!userPosition) {
-			quickFuelLoading = true;
-			locateMe(() => {
-				if (userPosition) {
-					fetchQuickFuel();
-				} else {
-					quickFuelLoading = false;
-					error = 'Could not determine your location';
-				}
-			});
+		const position = userPosition || searchedLocation;
+		if (position) {
+			await fetchQuickFuel(position);
 			return;
 		}
-		await fetchQuickFuel();
+		quickFuelLoading = true;
+		locateMe(() => {
+			if (userPosition) {
+				fetchQuickFuel(userPosition);
+			} else {
+				quickFuelLoading = false;
+				error = 'Could not determine your location';
+			}
+		});
 	}
 
-	async function fetchQuickFuel() {
-		if (!userPosition) return;
+	async function fetchQuickFuel(position: { lat: number; lng: number }) {
 		quickFuelLoading = true;
 		showQuickFuel = false;
 		const radii = [5, 10, 15, 20];
 		try {
 			for (const radius of radii) {
 				const params = new URLSearchParams({
-					lat: String(userPosition.lat),
-					lng: String(userPosition.lng),
+					lat: String(position.lat),
+					lng: String(position.lng),
 					fuel: selectedFuelType,
 					limit: '10',
 					radius: String(radius)

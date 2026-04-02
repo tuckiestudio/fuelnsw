@@ -18,7 +18,7 @@
     regions: string[];
   } = $props();
   
-  let canvas: HTMLCanvasElement = null as any;
+  let canvas = $state<HTMLCanvasElement>(null as any);
   let chart: Chart | null = null;
   let ChartJs: any = null;
   let chartLoaded = $state(false);

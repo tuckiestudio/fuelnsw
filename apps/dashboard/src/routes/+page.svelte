@@ -80,7 +80,7 @@
     brands: params.getAll('brands'),
     fuels: params.getAll('fuels'),
     months: parseInt(params.get('months') || '12'),
-    view: params.get('view') || 'bar'
+    view: (params.get('view') as 'bar' | 'line') || 'bar'
   });
   
   let regions = $state<RegionInfo[]>([]);
