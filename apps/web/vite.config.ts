@@ -45,6 +45,9 @@ export default defineConfig({
 			}
 		})
 	],
+	ssr: {
+		external: ['better-sqlite3']
+	},
 	resolve: {
 		alias: {
 			'@fuelnsw/shared': resolve(import.meta.dirname, '../../packages/shared/src')
