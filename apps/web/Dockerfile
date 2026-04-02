@@ -12,7 +12,7 @@ RUN npm prune --production --workspace=web
 FROM node:22-slim
 WORKDIR /app
 COPY --from=builder /app/apps/web/build ./build
-COPY --from=builder /app/apps/web/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/web/package.json .
 COPY --from=builder /app/apps/web/static ./static
 COPY --from=builder /app/packages/shared ./packages/shared
