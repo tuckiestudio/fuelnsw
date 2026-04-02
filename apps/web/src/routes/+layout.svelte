@@ -91,6 +91,13 @@
 	<main class="flex-1">
 		{@render children()}
 	</main>
+
+	<footer class="bg-white border-t border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
+		<div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+			<span>© {new Date().getFullYear()} AusFuel</span>
+			<span>Fuel price data sourced from the <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Government Fuel Check API</a></span>
+		</div>
+	</footer>
 </div>
 
 {#if isNative && showPaywall}
