@@ -410,7 +410,7 @@
 
 	async function openQuickFuel() {
 		closePanel();
-		const position = userPosition || searchedLocation;
+		const position = searchedLocation || userPosition;
 		if (position) {
 			await fetchQuickFuel(position);
 			return;
