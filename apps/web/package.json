@@ -27,6 +27,7 @@
 		"vite": "^7.3.1"
 	},
 	"dependencies": {
+		"@capacitor/core": "^8.3.0",
 		"@fuelnsw/shared": "*",
 		"chart.js": "^4.5.1",
 		"leaflet": "^1.9.4",
