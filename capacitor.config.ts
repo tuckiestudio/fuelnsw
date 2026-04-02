@@ -5,12 +5,13 @@ const config: CapacitorConfig = {
 	appName: 'FuelNSW',
 	webDir: 'apps/web/build',
 	server: {
-		url: 'https://fuelnsw.com.au',
+		url: 'http://150.107.73.209',
 		cleartext: true
 	},
 	plugins: {
 		SplashScreen: {
-			launchAutoHide: false,
+			launchAutoHide: true,
+			autoHide: true,
 			backgroundColor: '#16a34a',
 			androidSplashResourceName: 'splash',
 			showSpinner: true,
