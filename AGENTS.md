@@ -252,6 +252,78 @@ Ad placement:
 ### Navigate to cheapest
 `QuickFuelButton` triggers the "find cheapest nearby" flow: locates user → calls `/api/fuel/stations/nearest` → shows `QuickFuelSheet` bottom sheet. The `getNearestStationsByPrice()` DB function queries by price ASC within 20km radius (queries `limit*50` rows then filters by distance). `navigation.ts` opens Apple Maps on iOS, Google Maps on Android/web.
 
+## Deployment
+
+### Production environment
+
+- **Hosting**: Ubuntu VPS at `150.107.73.209`
+- **Management**: Dokploy (runs on a separate machine, connects to VPS as remote server via Dokploy agent)
+- **Reverse proxy**: Traefik (installed by Dokploy agent on VPS)
+- **Domain**: Configured in Dokploy with Traefik routing
+
+### Docker build
+
+The web app builds via `apps/web/Dockerfile`:
+
+- **Multi-stage build**: `node:22-slim` builder → minimal runtime image
+- **Build context**: Must be repo root (`/`) so Docker can access `packages/shared/` and `apps/web/`
+- **Dockerfile path**: `apps/web/Dockerfile`
+- **Output**: Container exposes port 3000, runs `node build`
+
+### Dokploy configuration
+
+| Setting | Value |
+|---|---|
+| Root Directory | `/` |
+| Dockerfile Path | `apps/web/Dockerfile` |
+| Ingress Port | `3000` (TCP) |
+| Protocol | TCP |
+
+### Environment variables (set in Dokploy)
+
+```
+NSW_FUEL_KEY=<api_key>
+NSW_FUEL_SECRET=<api_secret>
+ADMIN_TOKEN=<admin_token>
+DATA_DIR=/app/data
+```
+
+When a domain is configured, also add:
+```
+ORIGIN=https://yourdomain.com.au
+```
+
+### Persistent storage
+
+- **Type**: Bind mount
+- **Host path**: `/home/data/fuelnsw`
+- **Container path**: `/app/data`
+- **Ownership**: Must be UID `1000` (`node` user inside container): `sudo chown -R 1000:1000 /home/data/fuelnsw`
+- Contains `fuelnsw.sqlite` (1.1 GB) — survives container restarts and redeploys
+
+### Capacitor native app
+
+The iOS and Android apps are Capacitor WebView shells that load the production web server directly. Configuration in `capacitor.config.ts`:
+
+```ts
+server: {
+    url: 'http://150.107.73.209',  // Update when domain is ready
+    cleartext: true
+}
+```
+
+No bundled frontend in the native apps — they point to the server. Content updates are immediate without App Store reviews.
+
+### Deployment gotchas
+
+13. **`better-sqlite3` must be in web `package.json` dependencies** — The `adapter-node` Rollup bundle only externalizes packages listed in the web app's own `dependencies`. If `better-sqlite3` is only a transitive dep (via `@fuelnsw/shared`), Rollup bundles it including the `bindings` package which uses `__filename` (not available in ESM mode, crashes at runtime with `ReferenceError: __filename is not defined`).
+
+14. **All Capacitor packages must be in web `package.json` dependencies** — The web app imports `@capacitor/core`, `@capacitor/haptics`, `@capacitor/browser`, `@capacitor-community/admob`, and `@revenuecat/purchases-capacitor`. These are guarded by `Capacitor.isNativePlatform()` at runtime but need to resolve at build time. Without them in the web workspace, Rollup fails during `vite build`.
+
+15. **`node:22-slim` has no `curl`** — The Dockerfile healthcheck uses `node -e "fetch(...)"` instead of `curl`. Do not use `curl` in healthcheck commands.
+
+16. **npm workspace hoisting** — Dependencies are installed at the repo root `/app/node_modules`, not per-app. The Dockerfile copies from `/app/node_modules`, not `/app/apps/web/node_modules`.
+
 ## Gotchas
 
 1. **`DATA_DIR` resolution** — The DB client (`packages/shared/src/db/client.ts`) resolves `DATA_DIR` lazily on first `getDb()` call, not at module import time. This is because Vite loads `.env` after module evaluation. If `DATA_DIR` is not set, it defaults to `process.cwd()/data`.
