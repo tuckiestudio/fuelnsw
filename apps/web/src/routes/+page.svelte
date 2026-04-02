@@ -603,7 +603,7 @@
 		<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
 	</div>
 
-	<!-- Mobile: search + fuel dropdown + legend at top -->
+	<!-- Mobile: search + fuel dropdown at top -->
 	{#if !hideMobileControls}
 		<div class="sm:hidden absolute top-3 left-3 right-3 z-[1000]">
 			<div class="flex items-start gap-2">
@@ -627,9 +627,13 @@
 					variant="dropdown"
 				/>
 			</div>
-			<div class="mt-2">
-				<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
-			</div>
+		</div>
+	{/if}
+
+	<!-- Mobile: legend at bottom-left, in-line with locate button -->
+	{#if !hideMobileControls}
+		<div class="sm:hidden absolute bottom-40 left-3 z-[1000]">
+			<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 		</div>
 	{/if}
 
