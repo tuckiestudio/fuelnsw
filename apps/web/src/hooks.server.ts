@@ -24,7 +24,8 @@ const API_CACHE: Record<string, string> = {
 function getClientIp(request: Request): string {
 	const forwarded = request.headers.get('x-forwarded-for');
 	if (forwarded) {
-		return forwarded.split(',')[0].trim();
+		const ips = forwarded.split(',').map(s => s.trim());
+		return ips[ips.length - 1] || 'unknown';
 	}
 	const realIp = request.headers.get('x-real-ip');
 	if (realIp) {
@@ -62,7 +63,8 @@ const securityHeaders: Record<string, string> = {
 	'X-Frame-Options': 'SAMEORIGIN',
 	'X-Content-Type-Options': 'nosniff',
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
-	'Content-Security-Policy-Report-Only': [
+	'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
+	'Content-Security-Policy': [
 		"default-src 'self'",
 		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
 		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -74,6 +76,21 @@ const securityHeaders: Record<string, string> = {
 		"manifest-src 'self'"
 	].join('; ')
 };
+
+const CORS_ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
+
+function addCorsHeaders(request: Request, response: Response): void {
+	const origin = request.headers.get('origin');
+	if (!origin) return;
+
+	if (CORS_ALLOWED_ORIGINS.length > 0 && CORS_ALLOWED_ORIGINS.includes(origin)) {
+		response.headers.set('Access-Control-Allow-Origin', origin);
+		response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+		response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		response.headers.set('Access-Control-Max-Age', '86400');
+		response.headers.set('Vary', 'Origin');
+	}
+}
 
 const COMPRESSION_THRESHOLD = 1024;
 
@@ -155,10 +172,30 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
+	if (event.request.method === 'OPTIONS' && event.url.pathname.startsWith('/api/')) {
+		const origin = event.request.headers.get('origin');
+		if (CORS_ALLOWED_ORIGINS.length > 0 && origin && CORS_ALLOWED_ORIGINS.includes(origin)) {
+			return new Response(null, {
+				status: 204,
+				headers: {
+					'Access-Control-Allow-Origin': origin,
+					'Access-Control-Allow-Methods': 'GET, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+					'Access-Control-Max-Age': '86400'
+				}
+			});
+		}
+		return new Response(null, { status: 204 });
+	}
+
 	const response = await resolve(event);
 
 	for (const [key, value] of Object.entries(securityHeaders)) {
 		response.headers.set(key, value);
+	}
+
+	if (event.url.pathname.startsWith('/api/')) {
+		addCorsHeaders(event.request, response);
 	}
 
 	for (const [prefix, cacheControl] of Object.entries(API_CACHE)) {

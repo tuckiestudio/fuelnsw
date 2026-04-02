@@ -13,7 +13,8 @@ const rateLimitStore = new Map<string, { count: number; windowStart: number }>()
 function getClientIp(request: Request): string {
 	const forwarded = request.headers.get('x-forwarded-for');
 	if (forwarded) {
-		return forwarded.split(',')[0].trim();
+		const ips = forwarded.split(',').map(s => s.trim());
+		return ips[ips.length - 1] || 'unknown';
 	}
 	const realIp = request.headers.get('x-real-ip');
 	if (realIp) {
@@ -51,7 +52,8 @@ const securityHeaders: Record<string, string> = {
 	'X-Frame-Options': 'DENY',
 	'X-Content-Type-Options': 'nosniff',
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
-	'X-Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'"
+	'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+	'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; font-src 'self'; worker-src 'self'"
 };
 
 const COMPRESSION_THRESHOLD = 1024;

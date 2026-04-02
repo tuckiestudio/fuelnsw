@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { timingSafeEqual } from 'node:crypto';
 import { getDb } from '@fuelnsw/shared/db/client';
 import { upsertStations } from '@fuelnsw/shared/db/stations';
 import { savePricesAndSnapshot, getLatestRefreshTime } from '@fuelnsw/shared/db/prices';
@@ -16,7 +17,9 @@ function checkAuth(request: Request): boolean {
 	if (!auth) return false;
 	const parts = auth.split(' ');
 	if (parts.length !== 2 || parts[0] !== 'Bearer') return false;
-	return parts[1] === adminToken;
+	const a = Buffer.from(parts[1]);
+	const b = Buffer.from(adminToken);
+	return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export const POST: RequestHandler = async ({ request }) => {

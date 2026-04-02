@@ -15,10 +15,17 @@ const FUEL_MAP: Record<string, string[]> = {
 	'EV': ['EV']
 };
 
+const MAX_CACHE_SIZE = 32;
 const stmtCache = new Map<string, any>();
 
 function getStmt(db: any, key: string, sql: string) {
-	if (!stmtCache.has(key)) stmtCache.set(key, db.prepare(sql));
+	if (!stmtCache.has(key)) {
+		if (stmtCache.size >= MAX_CACHE_SIZE) {
+			const firstKey = stmtCache.keys().next().value;
+			if (firstKey !== undefined) stmtCache.delete(firstKey);
+		}
+		stmtCache.set(key, db.prepare(sql));
+	}
 	return stmtCache.get(key);
 }
 

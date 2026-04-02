@@ -28,11 +28,8 @@ export const GET: RequestHandler = async () => {
 	return json(
 		{
 			status,
-			timestamp: new Date().toISOString(),
-			uptime: process.uptime(),
 			database: dbOk ? 'connected' : 'error',
-			dataFresh,
-			lastRefresh
+			dataFresh
 		},
 		{ status: statusCode }
 	);
