@@ -476,6 +476,7 @@
 
 	function applyPosition(lat: number, lng: number, callback?: () => void) {
 		userPosition = { lat, lng };
+		searchedLocation = null;
 		setLastPosition(lat, lng);
 		updateUserMarker();
 		if (map) map.flyTo([lat, lng], 14, { duration: 0.8 });
