@@ -15,8 +15,8 @@ interface PlaceSearchResult {
 	currentOpeningHours?: {
 		openNow?: boolean;
 		periods?: Array<{
-			open: { day: number; time: string; hours?: number; minutes?: number };
-			close: { day: number; time: string; hours?: number; minutes?: number };
+			open: { day: number; hour?: number; minute?: number };
+			close: { day: number; hour?: number; minute?: number };
 		}>;
 		weekdayDescriptions?: string[];
 	};
@@ -51,7 +51,10 @@ export async function fetchOpeningHoursForStation(
 	try {
 		const response = await fetch(`${PLACES_API_BASE}/places:searchText?key=${apiKey}`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'X-Goog-FieldMask': 'places.id,places.currentOpeningHours'
+			},
 			body: JSON.stringify(body)
 		});
 
@@ -86,15 +89,16 @@ export async function fetchOpeningHoursForStation(
 
 export function isOpenNow(hours: OpeningHours): boolean {
 	const now = new Date();
-	const day = now.getDay();
-	const currentMinutes = now.getHours() * 60 + now.getMinutes();
+	const sydney = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+	const day = sydney.getDay();
+	const currentMinutes = sydney.getHours() * 60 + sydney.getMinutes();
 
 	for (const period of hours.periods) {
 		const openDay = period.open.day;
 		const closeDay = period.close.day;
 
-		const openMinutes = (period.open.hours ?? 0) * 60 + (period.open.minutes ?? 0);
-		const closeMinutes = (period.close.hours ?? 0) * 60 + (period.close.minutes ?? 0);
+		const openMinutes = (period.open.hour ?? period.open.hours ?? 0) * 60 + (period.open.minute ?? period.open.minutes ?? 0);
+		const closeMinutes = (period.close.hour ?? period.close.hours ?? 0) * 60 + (period.close.minute ?? period.close.minutes ?? 0);
 
 		if (openDay === closeDay) {
 			if (day === openDay && currentMinutes >= openMinutes && currentMinutes < closeMinutes) {

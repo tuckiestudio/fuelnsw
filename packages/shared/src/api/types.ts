@@ -123,8 +123,8 @@ export interface OfflineStation {
 }
 
 export interface OpeningHourPeriod {
-	open: { day: number; time: string; hours?: number; minutes?: number };
-	close: { day: number; time: string; hours?: number; minutes?: number };
+	open: { day: number; time?: string; hour?: number; minute?: number; hours?: number; minutes?: number };
+	close: { day: number; time?: string; hour?: number; minute?: number; hours?: number; minutes?: number };
 }
 
 export interface OpeningHours {

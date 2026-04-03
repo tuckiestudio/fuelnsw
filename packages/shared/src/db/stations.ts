@@ -282,10 +282,19 @@ export function clearAllOpeningHours(): void {
 
 export function updateStationOpeningHours(code: string, hoursJson: string | null): void {
 	const db = getDb();
-	db.prepare(`
-		UPDATE stations
-		SET opening_hours = ?,
-		    hours_last_fetched = datetime('now')
-		WHERE code = ?
-	`).run(hoursJson, code);
+	if (hoursJson) {
+		db.prepare(`
+			UPDATE stations
+			SET opening_hours = ?,
+			    hours_last_fetched = datetime('now')
+			WHERE code = ?
+		`).run(hoursJson, code);
+	} else {
+		db.prepare(`
+			UPDATE stations
+			SET opening_hours = NULL,
+			    hours_last_fetched = NULL
+			WHERE code = ?
+		`).run(code);
+	}
 }

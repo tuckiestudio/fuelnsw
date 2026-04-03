@@ -12,65 +12,80 @@ const REFRESH_INTERVAL_MS = parseInt(process.env.SCHEDULER_INTERVAL_MS || '', 10
 const COOLDOWN_MS = parseInt(process.env.COOLDOWN_MS || '', 10) || 5 * 60 * 1000;
 
 const HOURS_ENRICHMENT_DELAY_MS = 200;
+let hoursEnrichmentRunning = false;
 
 async function enrichOpeningHours(): Promise<void> {
 	if (!process.env.GOOGLE_PLACES_API_KEY) return;
+	if (hoursEnrichmentRunning) return;
+	hoursEnrichmentRunning = true;
 
-	const stations = getStationsNeedingHoursEnrichment();
-	if (stations.length === 0) return;
+	try {
+		const stations = getStationsNeedingHoursEnrichment();
+		if (stations.length === 0) return;
 
-	console.log(`[scheduler] Backfilling opening hours for ${stations.length} stations...`);
-	let updated = 0;
+		console.log(`[scheduler] Backfilling opening hours for ${stations.length} stations...`);
+		let updated = 0;
 
-	for (const station of stations) {
-		try {
-			const hours = await fetchOpeningHoursForStation(
-				station.name,
-				station.address,
-				station.latitude,
-				station.longitude
-			);
-			updateStationOpeningHours(station.code, hours ? JSON.stringify(hours) : null);
-			if (hours) updated++;
-			await new Promise(r => setTimeout(r, HOURS_ENRICHMENT_DELAY_MS));
-		} catch (err) {
-			console.error(`[scheduler] Failed to enrich hours for ${station.code}:`, err instanceof Error ? err.message : err);
+		for (const station of stations) {
+			try {
+				const hours = await fetchOpeningHoursForStation(
+					station.name,
+					station.address,
+					station.latitude,
+					station.longitude
+				);
+				updateStationOpeningHours(station.code, hours ? JSON.stringify(hours) : null);
+				if (hours) updated++;
+				await new Promise(r => setTimeout(r, HOURS_ENRICHMENT_DELAY_MS));
+			} catch (err) {
+				console.error(`[scheduler] Failed to enrich hours for ${station.code}:`, err instanceof Error ? err.message : err);
+			}
 		}
-	}
 
-	console.log(`[scheduler] Opening hours backfill complete — ${updated}/${stations.length} updated`);
+		console.log(`[scheduler] Opening hours backfill complete — ${updated}/${stations.length} updated`);
+	} finally {
+		hoursEnrichmentRunning = false;
+	}
 }
 
 export async function refreshAllOpeningHours(): Promise<{ total: number; updated: number; failed: number }> {
 	if (!process.env.GOOGLE_PLACES_API_KEY) {
 		throw new Error('GOOGLE_PLACES_API_KEY not configured');
 	}
-
-	const stations = getAllStationsForHoursRefresh();
-	console.log(`[scheduler] Manual hours refresh for ${stations.length} stations...`);
-	let updated = 0;
-	let failed = 0;
-
-	for (const station of stations) {
-		try {
-			const hours = await fetchOpeningHoursForStation(
-				station.name,
-				station.address,
-				station.latitude,
-				station.longitude
-			);
-			updateStationOpeningHours(station.code, hours ? JSON.stringify(hours) : null);
-			if (hours) updated++;
-			else failed++;
-			await new Promise(r => setTimeout(r, HOURS_ENRICHMENT_DELAY_MS));
-		} catch (err) {
-			failed++;
-			console.error(`[scheduler] Failed to refresh hours for ${station.code}:`, err instanceof Error ? err.message : err);
-		}
+	if (hoursEnrichmentRunning) {
+		throw new Error('Hours enrichment already in progress');
 	}
+	hoursEnrichmentRunning = true;
 
-	console.log(`[scheduler] Manual hours refresh complete — ${updated}/${stations.length} updated, ${failed} failed`);
-	return { total: stations.length, updated, failed };
+	try {
+		const stations = getAllStationsForHoursRefresh();
+		console.log(`[scheduler] Manual hours refresh for ${stations.length} stations...`);
+		let updated = 0;
+		let failed = 0;
+
+		for (const station of stations) {
+			try {
+				const hours = await fetchOpeningHoursForStation(
+					station.name,
+					station.address,
+					station.latitude,
+					station.longitude
+				);
+				updateStationOpeningHours(station.code, hours ? JSON.stringify(hours) : null);
+				if (hours) updated++;
+				else failed++;
+				await new Promise(r => setTimeout(r, HOURS_ENRICHMENT_DELAY_MS));
+			} catch (err) {
+				failed++;
+				console.error(`[scheduler] Failed to refresh hours for ${station.code}:`, err instanceof Error ? err.message : err);
+			}
+		}
+
+		console.log(`[scheduler] Manual hours refresh complete — ${updated}/${stations.length} updated, ${failed} failed`);
+		return { total: stations.length, updated, failed };
+	} finally {
+		hoursEnrichmentRunning = false;
+	}
 }
 
 async function runRefresh(): Promise<void> {
