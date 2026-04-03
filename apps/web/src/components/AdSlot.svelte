@@ -36,10 +36,10 @@
 			</div>
 		</div>
 	{:else if showAd}
-		<div class={className} style="height:50px;overflow:hidden;pointer-events:none">
+		<div class={className} style="height:90px;overflow:hidden;pointer-events:none">
 			<ins
 				class="adsbygoogle"
-				style="display:block;width:100%;height:50px"
+				style="display:block;width:100%;height:90px"
 				data-ad-client="ca-pub-8792853309353392"
 				data-ad-slot={WEB_AD_SLOT}
 				data-ad-format={format}

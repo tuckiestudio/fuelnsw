@@ -156,7 +156,7 @@
 	bind:this={sheetEl}
 >
 	{#if !adsRemoved}
-		<div class="shrink-0 bg-gray-50 border-b border-gray-200" style="height:50px;position:relative">
+		<div class="shrink-0 bg-gray-50 border-b border-gray-200" style="height:90px;position:relative">
 			<div class="absolute inset-0 overflow-hidden">
 				<AdSlot />
 			</div>
