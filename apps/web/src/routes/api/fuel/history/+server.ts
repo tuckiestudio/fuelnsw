@@ -2,19 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getDb } from '@fuelnsw/shared/db/client';
 import { sydneyDate } from '@fuelnsw/shared/utils/date';
-
-const FUEL_MAP: Record<string, string[]> = {
-	'E10': ['E10'],
-	'Unleaded': ['Unleaded', 'U91'],
-	'P95': ['P95'],
-	'P98': ['P98'],
-	'Diesel': ['Diesel', 'DL'],
-	'LPG': ['LPG'],
-	'B20': ['B20'],
-	'PDL': ['PDL'],
-	'E85': ['E85'],
-	'EV': ['EV']
-};
+import { HISTORY_FUEL_MAP } from '@fuelnsw/shared/utils/fuel-types';
 
 const MAX_CACHE_SIZE = 32;
 const stmtCache = new Map<string, any>();
@@ -40,7 +28,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 	try {
 		const db = getDb();
-		const fuelTypes = fuelType ? (FUEL_MAP[fuelType] || [fuelType]) : null;
+		const fuelTypes = fuelType ? (HISTORY_FUEL_MAP[fuelType] || [fuelType]) : null;
 		const oneYearAgo = new Date();
 		oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 		const fromStr = oneYearAgo.toLocaleDateString('sv-SE', { timeZone: 'Australia/Sydney' });

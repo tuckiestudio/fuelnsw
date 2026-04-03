@@ -249,7 +249,7 @@ WebView shells loading the production web server directly. No bundled frontend �
 
 5. **Prepared statement caching** — History API caches statements by key. Keys must be unique per SQL string. Cache is capped at 32 entries with LRU eviction.
 
-6. **`brand_group` not in schema.ts** — The `brand_group` column and dashboard tables exist in production but were created by migration scripts, not `initializeSchema()`.
+6. **`brand_group` and dashboard tables** — The `brand_group` column is now handled by `initializeSchema()` (added via ALTER TABLE if missing). Dashboard tables (`postcode_sa4_mapping`, `weekly_price_aggregates`) are still created by the separate `migrate-dashboard.ts` script, not `initializeSchema()`.
 
 7. **`onMount` async cleanup** — Svelte 5 `onMount` doesn't support async cleanup. Map init wraps async work in an IIFE inside synchronous `onMount`.
 

@@ -2,7 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { initializeSchema } from '@fuelnsw/shared/db/schema';
 import { closeDb } from '@fuelnsw/shared/db/client';
-import { brotliCompress, gzip as gzipCompress } from 'node:zlib';
+import { brotliCompress, constants as zlibConstants, gzip as gzipCompress } from 'node:zlib';
 
 let started = false;
 
@@ -59,7 +59,7 @@ const securityHeaders: Record<string, string> = {
 const COMPRESSION_THRESHOLD = 1024;
 
 const brotliCompressP = (buf: Buffer) => new Promise<Buffer>((res, rej) =>
-	brotliCompress(buf, { params: { [require('zlib').constants.BROTLI_PARAM_QUALITY]: 4 } }, (err, result) => err ? rej(err) : res(result))
+	brotliCompress(buf, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 4 } }, (err, result) => err ? rej(err) : res(result))
 );
 const gzipCompressP = (buf: Buffer) => new Promise<Buffer>((res, rej) =>
 	gzipCompress(buf, { level: 6 }, (err, result) => err ? rej(err) : res(result))

@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 import { initializeSchema } from '@fuelnsw/shared/db/schema';
 import { backfillFromStaleRecords } from '@fuelnsw/shared/db/availability';
 import { closeDb } from '@fuelnsw/shared/db/client';
-import { brotliCompress, gzip as gzipCompress } from 'node:zlib';
+import { brotliCompress, constants as zlibConstants, gzip as gzipCompress } from 'node:zlib';
 
 let started = false;
 
@@ -95,51 +95,11 @@ function addCorsHeaders(request: Request, response: Response): void {
 const COMPRESSION_THRESHOLD = 1024;
 
 const brotliCompressP = (buf: Buffer) => new Promise<Buffer>((res, rej) =>
-	brotliCompress(buf, { params: { [require('zlib').constants.BROTLI_PARAM_QUALITY]: 4 } }, (err, result) => err ? rej(err) : res(result))
+	brotliCompress(buf, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 4 } }, (err, result) => err ? rej(err) : res(result))
 );
 const gzipCompressP = (buf: Buffer) => new Promise<Buffer>((res, rej) =>
 	gzipCompress(buf, { level: 6 }, (err, result) => err ? rej(err) : res(result))
 );
-
-async function compressResponse(response: Response, acceptEncoding: string): Promise<Response> {
-	if (response.status === 204 || response.status === 304) return response;
-
-	const contentType = response.headers.get('content-type') || '';
-	if (!contentType.includes('json') && !contentType.includes('text') && !contentType.includes('javascript') && !contentType.includes('xml')) {
-		return response;
-	}
-
-	if (!response.body) return response;
-
-	const reader = response.body.getReader();
-	const chunks: Uint8Array[] = [];
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		chunks.push(value);
-	}
-	const body = Buffer.concat(chunks);
-
-	if (body.length < COMPRESSION_THRESHOLD) return response;
-
-	const newHeaders = new Headers(response.headers);
-	newHeaders.delete('Content-Length');
-	newHeaders.set('Vary', 'Accept-Encoding');
-
-	if (acceptEncoding.includes('br')) {
-		const compressed = await brotliCompressP(body);
-		newHeaders.set('Content-Encoding', 'br');
-		return new Response(new Uint8Array(compressed), { status: response.status, statusText: response.statusText, headers: newHeaders });
-	}
-
-	if (acceptEncoding.includes('gzip')) {
-		const compressed = await gzipCompressP(body);
-		newHeaders.set('Content-Encoding', 'gzip');
-		return new Response(new Uint8Array(compressed), { status: response.status, statusText: response.statusText, headers: newHeaders });
-	}
-
-	return response;
-}
 
 function setupGracefulShutdown(): void {
 	const shutdown = (signal: string) => {
@@ -199,7 +159,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	for (const [prefix, cacheControl] of Object.entries(API_CACHE)) {
-		if (event.url.pathname === prefix || event.url.pathname.startsWith(prefix + '?')) {
+		if (event.url.pathname === prefix || event.url.pathname.startsWith(prefix + '/')) {
 			response.headers.set('Cache-Control', cacheControl);
 			break;
 		}

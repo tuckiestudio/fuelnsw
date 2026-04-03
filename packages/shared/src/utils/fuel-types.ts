@@ -11,6 +11,32 @@ export const FUEL_TYPE_MAP: Record<string, string> = {
 	EV: 'EV'
 };
 
+export const REVERSE_FUEL_MAP: Record<string, string> = {
+	'E10': 'E10',
+	'Unleaded': 'U91',
+	'P95': 'P95',
+	'P98': 'P98',
+	'Diesel': 'DL',
+	'LPG': 'LPG',
+	'B20': 'B20',
+	'PDL': 'PDL',
+	'E85': 'E85',
+	'EV': 'EV'
+};
+
+export const HISTORY_FUEL_MAP: Record<string, string[]> = {
+	'E10': ['E10'],
+	'Unleaded': ['Unleaded', 'U91'],
+	'P95': ['P95'],
+	'P98': ['P98'],
+	'Diesel': ['Diesel', 'DL'],
+	'LPG': ['LPG'],
+	'B20': ['B20'],
+	'PDL': ['PDL'],
+	'E85': ['E85'],
+	'EV': ['EV']
+};
+
 export const FUEL_OPTIONS = ['E10', 'Unleaded', 'P95', 'P98', 'Diesel', 'PDL', 'LPG', 'E85', 'B20'] as const;
 
 export type FuelOption = (typeof FUEL_OPTIONS)[number];

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { getDb } from './client.js';
 import type { LivePrice, HistoricalPrice } from '../api/types.js';
 import { sydneyDate } from '../utils/date.js';
+import { FUEL_TYPE_MAP, REVERSE_FUEL_MAP } from '../utils/fuel-types.js';
 
 const UPSERT_LIVE_PRICE = `
 	INSERT INTO live_prices (station_code, fuel_type, price, last_updated, fetched_at)
@@ -40,19 +41,6 @@ export function savePricesAndSnapshot(prices: Array<{
 	const histStmt = db.prepare(UPSERT_HISTORICAL);
 	const invStmt = db.prepare(UPSERT_FUEL_INVENTORY);
 
-	const FUEL_TYPE_MAP: Record<string, string> = {
-		'E10': 'E10',
-		'U91': 'Unleaded',
-		'P95': 'P95',
-		'P98': 'P98',
-		'DL': 'Diesel',
-		'LPG': 'LPG',
-		'B20': 'B20',
-		'PDL': 'PDL',
-		'E85': 'E85',
-		'EV': 'EV'
-	};
-
 	const transaction = db.transaction((items: typeof prices) => {
 		for (const p of items) {
 			const normalizedFuel = FUEL_TYPE_MAP[p.fueltype] || p.fueltype;
@@ -82,19 +70,6 @@ export function getHistoricalPrices(
 	to?: string
 ): HistoricalPrice[] {
 	const db = getDb();
-
-	const REVERSE_FUEL_MAP: Record<string, string> = {
-		'E10': 'E10',
-		'Unleaded': 'U91',
-		'P95': 'P95',
-		'P98': 'P98',
-		'Diesel': 'DL',
-		'LPG': 'LPG',
-		'B20': 'B20',
-		'PDL': 'PDL',
-		'E85': 'E85',
-		'EV': 'EV'
-	};
 
 	const historicalFuelType = fuelType ? (REVERSE_FUEL_MAP[fuelType] || fuelType) : undefined;
 

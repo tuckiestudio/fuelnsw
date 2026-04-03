@@ -26,6 +26,7 @@
 	},
 	"dependencies": {
 		"@fuelnsw/shared": "*",
+		"better-sqlite3": "^12.8.0",
 		"chart.js": "^4.5.1",
 		"leaflet": "^1.9.4"
 	}

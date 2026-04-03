@@ -70,22 +70,27 @@ export async function rebuildWeeklyAggregates(): Promise<AggregationResult> {
 }
 
 export function scheduleNightlyAggregation(): void {
-  const SYDNEY_OFFSET = 11 * 60 * 60 * 1000;
   const targetHour = 2;
-  
-  const now = new Date();
-  const next2AM = new Date(now);
-  next2AM.setHours(targetHour, 0, 0, 0);
-  
-  if (now > next2AM) {
-    next2AM.setDate(next2AM.getDate() + 1);
+
+  function getNext2AMSydney(): Date {
+    const now = new Date();
+    const sydneyStr = now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' });
+    const sydneyNow = new Date(sydneyStr);
+    const sydneyNext = new Date(sydneyStr);
+    sydneyNext.setHours(targetHour, 0, 0, 0);
+    if (sydneyNow >= sydneyNext) {
+      sydneyNext.setDate(sydneyNext.getDate() + 1);
+    }
+    const diff = sydneyNext.getTime() - sydneyNow.getTime();
+    return new Date(now.getTime() + diff);
   }
-  
-  const delay = next2AM.getTime() - now.getTime();
+
+  const next2AM = getNext2AMSydney();
+  const delay = next2AM.getTime() - Date.now();
   const delayMinutes = Math.floor(delay / (1000 * 60));
-  
+
   console.log(`[weekly-aggregation] Scheduled for ${next2AM.toISOString()} (in ${delayMinutes} minutes)`);
-  
+
   setTimeout(() => {
     console.log('[weekly-aggregation] Running scheduled aggregation...');
     rebuildWeeklyAggregates()
