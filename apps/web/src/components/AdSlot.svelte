@@ -36,7 +36,7 @@
 			</div>
 		</div>
 	{:else if showAd}
-		<div class={className} style="height:50px;overflow:hidden">
+		<div class={className} style="height:50px;overflow:hidden;pointer-events:none">
 			<ins
 				class="adsbygoogle"
 				style="display:block;width:100%;height:50px"
