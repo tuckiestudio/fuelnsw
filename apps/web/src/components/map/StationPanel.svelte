@@ -8,6 +8,7 @@
 	import { getRemoveAds } from '$lib/preferences';
 	import { navigateTo } from '$lib/navigation';
 	import { Capacitor } from '@capacitor/core';
+	import AdSlot from '$components/AdSlot.svelte';
 
 	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
 		if (!Capacitor.isNativePlatform()) return;
@@ -148,15 +149,15 @@
 </svelte:head>
 
 <div
-	class="z-[1003] bg-white shadow-xl flex flex-col
+	class="z-[1003] bg-white shadow-xl flex flex-col overflow-hidden
 		absolute bottom-0 left-0 right-0 rounded-t-2xl
 		sm:bottom-auto sm:top-0 sm:right-0 sm:left-auto sm:w-96 sm:h-full sm:rounded-none sm:border-l sm:border-gray-200"
-	style={isMobile ? `height: ${sheetHeight}px; transition: ${animated ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'}` : ''}
+	style={isMobile ? `height: ${sheetHeight}px; max-height: 100vh; transition: ${animated ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'}` : ''}
 	bind:this={sheetEl}
 >
 	{#if !adsRemoved && (isCollapsed || !isMobile)}
-		<div class="shrink-0 bg-gray-50 border-b border-gray-200 flex items-center justify-center h-[50px]">
-			<span class="text-xs text-gray-400">Advertisement</span>
+		<div class="shrink-0 bg-gray-50 border-b border-gray-200 h-[50px] overflow-hidden">
+			<AdSlot />
 		</div>
 	{/if}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -182,7 +183,7 @@
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
 		</button>
 	</div>
-	<div class="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4">
+	<div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4" style="-webkit-overflow-scrolling:touch">
 		<div class="space-y-4">
 			<div class="grid grid-cols-2 gap-3 text-sm">
 				<div>

@@ -20,8 +20,10 @@
 		adsRemoved = isNative ? getRemoveAds() : false;
 
 		if (!adsRemoved) {
-			import('$lib/ads').then(({ initAds }) => {
-				initAds();
+			import('$lib/ads').then(({ initAds, showBanner }) => {
+				initAds().then(() => {
+					if (isNative) showBanner();
+				});
 			});
 		}
 
@@ -29,7 +31,10 @@
 			import('$lib/subscription').then(({ configureRevenueCat, isSubscribed }) => {
 				configureRevenueCat().then(() => {
 					isSubscribed().then((subbed) => {
-						if (subbed) adsRemoved = true;
+						if (subbed) {
+							adsRemoved = true;
+							import('$lib/ads').then(({ hideBanner }) => hideBanner());
+						}
 					});
 				});
 			});
