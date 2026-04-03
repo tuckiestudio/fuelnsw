@@ -1,4 +1,4 @@
-# AusFuel — Project Guide
+# Fuel Scout NSW — Project Guide
 
 NSW fuel price tracker. Fetches prices from the NSW Government Fuel Check API every 6 hours, stores in SQLite, and serves two independent SvelteKit apps: a user-facing map/summary site and a standalone analytics dashboard.
 
@@ -10,14 +10,15 @@ ausfuel/
 ├── data/                     # SQLite DB + postcode boundaries (gitignored)
 ├── scripts/
 │   ├── import-history.ts     # Historical price importer (CKAN API + XLSX)
-│   └── migrate-dashboard.ts  # One-time dashboard migration script
+│   ├── migrate-dashboard.ts  # One-time dashboard migration script
+│   └── push-opening-hours.sh # Push opening hours from local DB to production
 ├── packages/shared/          # @fuelnsw/shared — DB, API client, types, scheduler
 │   └── src/
-│       ├── api/              # types.ts, nsw-fuel-client.ts
+│       ├── api/              # types.ts, nsw-fuel-client.ts, google-places-client.ts
 │       ├── db/               # client.ts, schema.ts, stations.ts, prices.ts, etc.
 │       ├── utils/            # fuel-types.ts, parse-address.ts
 │       ├── cache.ts          # node-cache wrapper (30s TTL)
-│       └── scheduler.ts      # 6-hour refresh + weekly aggregation
+│       └── scheduler.ts      # 6-hour refresh + weekly aggregation + opening hours
 ├── apps/web/                 # User-facing app (port 3000)
 │   └── src/
 │       ├── hooks.server.ts   # DB init, scheduler, rate limit, compression, security headers
