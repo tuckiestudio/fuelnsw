@@ -155,7 +155,7 @@
 	style={isMobile ? `height: ${sheetHeight}px; max-height: 100vh; transition: ${animated ? 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'}` : ''}
 	bind:this={sheetEl}
 >
-	{#if !adsRemoved && (isCollapsed || !isMobile)}
+	{#if !adsRemoved && isCollapsed && isMobile}
 		<div class="shrink-0 bg-gray-50 border-b border-gray-200 h-[50px] overflow-hidden">
 			<AdSlot />
 		</div>
