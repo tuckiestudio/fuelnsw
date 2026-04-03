@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { tick } from 'svelte';
 	import { browser } from '$app/environment';
 	import { Capacitor } from '@capacitor/core';
 	import { WEB_AD_SLOT } from '$lib/ads';
@@ -13,16 +14,17 @@
 		class?: string;
 	} = $props();
 
-	let mounted = $state(false);
+	let showAd = $state(false);
 
 	onMount(() => {
-		mounted = true;
-		if (!browser || Capacitor.isNativePlatform() || dev) return;
-
-		try {
-			const w = window as any;
-			(w.adsbygoogle = w.adsbygoogle || []).push({});
-		} catch {}
+		if (dev || Capacitor.isNativePlatform()) return;
+		showAd = true;
+		tick().then(() => {
+			try {
+				const w = window as any;
+				(w.adsbygoogle = w.adsbygoogle || []).push({});
+			} catch {}
+		});
 	});
 </script>
 
@@ -33,7 +35,7 @@
 				<span class="text-xs text-gray-400">Ad</span>
 			</div>
 		</div>
-	{:else if mounted}
+	{:else if showAd}
 		<div class={className} style="height:50px;overflow:hidden">
 			<ins
 				class="adsbygoogle"
