@@ -57,6 +57,7 @@ Both apps load `.env` from their own directory. Vite sets `process.cwd()` to the
 | `DATA_DIR` | both | Path to data directory. Relative from app dir: `../../data` |
 | `ORIGIN` | both | Full URL for HSTS header (e.g. `https://yourdomain.com.au`) |
 | `CORS_ORIGINS` | web | Comma-separated origins allowed for API CORS (leave empty to disable) |
+| `GOOGLE_PLACES_API_KEY` | web | Google Places API key for fetching station opening hours (optional) |
 
 ### Web app `.env` example (`apps/web/.env`)
 ```

@@ -16,17 +16,17 @@ export const GET: RequestHandler = async ({ url }) => {
 	const north = parseFloat(url.searchParams.get('north') || '');
 	const east = parseFloat(url.searchParams.get('east') || '');
 	const fuel = url.searchParams.get('fuel') || undefined;
+	const openOnly = url.searchParams.get('open_only') !== 'false';
 
 	if (!validateCoordinate(south, true) || !validateCoordinate(north, true) || 
 	    !validateCoordinate(west, false) || !validateCoordinate(east, false)) {
 		return json({ error: 'Invalid coordinates' }, { status: 400 });
 	}
 
-	// Ensure south < north and west < east
 	if (south >= north || west >= east) {
 		return json({ error: 'Invalid bounds: south must be < north and west must be < east' }, { status: 400 });
 	}
 
-	const stations = getStationsInBoundsAsGeoJSON(south, west, north, east, fuel);
+	const stations = getStationsInBoundsAsGeoJSON(south, west, north, east, fuel, openOnly);
 	return json(stations);
 };

@@ -1,5 +1,6 @@
 import { getDb } from './client.js';
-import type { Station, StationGeoJSON } from '../api/types.js';
+import type { Station, StationGeoJSON, OpeningHours } from '../api/types.js';
+import { isOpenNow } from '../api/google-places-client.js';
 
 const UPSERT_STATION = `
 	INSERT INTO stations (code, name, brand, address, suburb, state, postcode, latitude, longitude, last_seen)
@@ -50,22 +51,34 @@ interface StationPriceRow {
 	postcode: string;
 	latitude: number;
 	longitude: number;
+	opening_hours: string | null;
 	price_value: number | null;
 	price_fuel_type: string | null;
 }
 
-export function getStationsAsGeoJSON(): StationGeoJSON[] {
-	return buildGeoJSON(getAllStationsWithPrices());
+function computeIsOpen(openingHoursJson: string | null): boolean {
+	if (!openingHoursJson) return true;
+	try {
+		const hours = JSON.parse(openingHoursJson) as OpeningHours;
+		return isOpenNow(hours);
+	} catch {
+		return true;
+	}
+}
+
+export function getStationsAsGeoJSON(openOnly?: boolean): StationGeoJSON[] {
+	return buildGeoJSON(getAllStationsWithPrices(), openOnly);
 }
 
 export function getStationsInBoundsAsGeoJSON(
 	south: number, west: number, north: number, east: number,
-	fuelType?: string
+	fuelType?: string,
+	openOnly?: boolean
 ): StationGeoJSON[] {
 	const db = getDb();
 
 	if (!fuelType) {
-		return buildGeoJSON(getAllStationsWithPricesInBounds(south, west, north, east));
+		return buildGeoJSON(getAllStationsWithPricesInBounds(south, west, north, east), openOnly);
 	}
 
 	const stationCodesWithFuel = db.prepare(`
@@ -91,20 +104,7 @@ export function getStationsInBoundsAsGeoJSON(
 		ORDER BY s.suburb, s.name
 	`).all(...codes) as StationPriceRow[];
 
-	return buildGeoJSON(rows);
-}
-
-interface StationPriceRow {
-	code: string;
-	name: string;
-	brand: string;
-	address: string;
-	suburb: string;
-	postcode: string;
-	latitude: number;
-	longitude: number;
-	price_value: number | null;
-	price_fuel_type: string | null;
+	return buildGeoJSON(rows, openOnly);
 }
 
 function getAllStationsWithPrices(): StationPriceRow[] {
@@ -133,10 +133,13 @@ function getAllStationsWithPricesInBounds(
 	return db.prepare(query).all(south, north, west, east) as StationPriceRow[];
 }
 
-function buildGeoJSON(rows: StationPriceRow[]): StationGeoJSON[] {
+function buildGeoJSON(rows: StationPriceRow[], openOnly?: boolean): StationGeoJSON[] {
 	const stationMap = new Map<string, StationGeoJSON>();
 	for (const row of rows) {
 		if (!stationMap.has(row.code)) {
+			const isOpen = computeIsOpen(row.opening_hours);
+			if (openOnly && !isOpen) continue;
+
 			stationMap.set(row.code, {
 				type: 'Feature',
 				properties: {
@@ -145,7 +148,9 @@ function buildGeoJSON(rows: StationPriceRow[]): StationGeoJSON[] {
 					brand: row.brand,
 					suburb: row.suburb,
 					address: row.address,
-					postcode: row.postcode
+					postcode: row.postcode,
+					opening_hours: row.opening_hours,
+					is_open: isOpen
 				},
 				geometry: {
 					type: 'Point',
@@ -173,6 +178,8 @@ export interface NearestStation {
 	price: number;
 	distance_km: number;
 	drive_minutes: number;
+	opening_hours: string | null;
+	is_open: boolean;
 }
 
 export function getNearestStationsByPrice(
@@ -180,7 +187,8 @@ export function getNearestStationsByPrice(
 	lng: number,
 	fuelType: string,
 	limit = 10,
-	radius = 20
+	radius = 20,
+	openOnly = false
 ): NearestStation[] {
 	const db = getDb();
 	const queryLimit = Math.max(limit * 50, 500);
@@ -194,6 +202,7 @@ export function getNearestStationsByPrice(
 			s.postcode,
 			s.latitude,
 			s.longitude,
+			s.opening_hours,
 			lp.price,
 			(6371 * acos(
 				MIN(1, cos(radians(?)) * cos(radians(s.latitude)) *
@@ -208,13 +217,50 @@ export function getNearestStationsByPrice(
 		  AND s.longitude IS NOT NULL
 		ORDER BY lp.price ASC
 		LIMIT ?
-	`).all(lat, lng, lat, fuelType, queryLimit) as NearestStation[];
+	`).all(lat, lng, lat, fuelType, queryLimit) as (Omit<NearestStation, 'drive_minutes' | 'is_open'> & { distance_km: number })[];
 
 	return rows
-		.filter(r => r.distance_km <= radius)
-		.slice(0, limit)
 		.map(r => ({
 			...r,
+			is_open: computeIsOpen(r.opening_hours),
 			drive_minutes: Math.round(r.distance_km / 0.5)
-		}));
+		}))
+		.filter(r => !openOnly || r.is_open)
+		.filter(r => r.distance_km <= radius)
+		.slice(0, limit);
+}
+
+export function getStationsNeedingHoursEnrichment(maxAgeDays = 7): Array<{
+	code: string;
+	name: string;
+	address: string;
+	latitude: number;
+	longitude: number;
+}> {
+	const db = getDb();
+	return db.prepare(`
+		SELECT code, name, address, latitude, longitude
+		FROM stations
+		WHERE opening_hours IS NULL
+		   OR hours_last_fetched IS NULL
+		   OR julianday('now') - julianday(hours_last_fetched) > ?
+		ORDER BY hours_last_fetched ASC NULLS FIRST
+		LIMIT 100
+	`).all(maxAgeDays) as Array<{
+		code: string;
+		name: string;
+		address: string;
+		latitude: number;
+		longitude: number;
+	}>;
+}
+
+export function updateStationOpeningHours(code: string, hoursJson: string | null): void {
+	const db = getDb();
+	db.prepare(`
+		UPDATE stations
+		SET opening_hours = ?,
+		    hours_last_fetched = datetime('now')
+		WHERE code = ?
+	`).run(hoursJson, code);
 }

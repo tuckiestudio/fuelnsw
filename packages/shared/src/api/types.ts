@@ -40,6 +40,8 @@ export interface Station {
 	latitude: number;
 	longitude: number;
 	last_seen: string;
+	opening_hours: string | null;
+	hours_last_fetched: string | null;
 }
 
 export interface LivePrice {
@@ -120,6 +122,17 @@ export interface OfflineStation {
 	hours_since_drop: number;
 }
 
+export interface OpeningHourPeriod {
+	open: { day: number; time: string; hours?: number; minutes?: number };
+	close: { day: number; time: string; hours?: number; minutes?: number };
+}
+
+export interface OpeningHours {
+	periods: OpeningHourPeriod[];
+	weekdayText: string[];
+	openNow?: boolean;
+}
+
 export interface StationGeoJSON {
 	type: 'Feature';
 	properties: {
@@ -129,7 +142,9 @@ export interface StationGeoJSON {
 		suburb: string;
 		address: string;
 		postcode: string;
-		[fuelType: string]: string | undefined;
+		opening_hours: string | null;
+		is_open: boolean;
+		[fuelType: string]: string | number | boolean | null | undefined;
 	};
 	geometry: {
 		type: 'Point';

@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getStation } from '@fuelnsw/shared/db/stations';
 import { getLivePriceForStation } from '@fuelnsw/shared/db/prices';
+import { isOpenNow } from '@fuelnsw/shared/api/google-places-client';
+import type { OpeningHours } from '@fuelnsw/shared/api/types';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const station = getStation(params.code);
@@ -10,5 +12,11 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 
 	const prices = getLivePriceForStation(params.code);
-	return json({ station, prices });
+	let is_open = true;
+	if (station.opening_hours) {
+		try {
+			is_open = isOpenNow(JSON.parse(station.opening_hours) as OpeningHours);
+		} catch {}
+	}
+	return json({ station, prices, is_open });
 };

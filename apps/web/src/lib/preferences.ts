@@ -3,7 +3,8 @@ const KEYS = {
 	lastLat: 'fuelnsw_lastLat',
 	lastLng: 'fuelnsw_lastLng',
 	onboarded: 'fuelnsw_onboarded',
-	removeAds: 'fuelnsw_removeAds'
+	removeAds: 'fuelnsw_removeAds',
+	openOnly: 'fuelnsw_openOnly'
 } as const;
 
 function get<T>(key: string, fallback: T): T {
@@ -57,4 +58,12 @@ export function getRemoveAds(): boolean {
 
 export function setRemoveAds(value: boolean): void {
 	set(KEYS.removeAds, value);
+}
+
+export function getOpenOnly(): boolean {
+	return get(KEYS.openOnly, true);
+}
+
+export function setOpenOnly(value: boolean): void {
+	set(KEYS.openOnly, value);
 }

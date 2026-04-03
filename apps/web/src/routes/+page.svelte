@@ -17,7 +17,9 @@
 		getOnboarded,
 		setOnboarded,
 		getLastPosition,
-		setLastPosition
+		setLastPosition,
+		getOpenOnly,
+		setOpenOnly
 	} from '$lib/preferences';
 
 
@@ -44,6 +46,7 @@
 	let quickFuelLoading = $state(false);
 	let quickFuelStations: any[] = $state([]);
 	let isMobile = $state(true);
+	let openOnly = $state(getOpenOnly());
 
 	function escapeHtml(str: string): string {
 		return str
@@ -83,7 +86,7 @@
 
 	async function loadLocations() {
 		try {
-			const res = await fetch('/api/fuel/stations');
+			const res = await fetch(`/api/fuel/stations?open_only=false`);
 			const all: StationGeoJSON[] = await res.json();
 			const seen = new Set<string>();
 			allLocations = [];
@@ -125,7 +128,8 @@
 				west: bounds.getWest().toFixed(4),
 				north: bounds.getNorth().toFixed(4),
 				east: bounds.getEast().toFixed(4),
-				fuel: selectedFuelType
+				fuel: selectedFuelType,
+				open_only: String(openOnly)
 			});
 			const res = await fetch(`/api/fuel/stations/viewport?${params}`);
 			if (res.ok) {
@@ -144,7 +148,7 @@
 	function updatePriceRange() {
 		const source = searchQuery.trim() ? filteredStations : stations;
 		const prices = source
-			.map((s) => parseFloat(s.properties[selectedFuelType] ?? ''))
+			.map((s) => parseFloat(String(s.properties[selectedFuelType] ?? '')))
 			.filter((p) => !isNaN(p));
 		priceRange = {
 			min: prices.length ? Math.min(...prices) : 0,
@@ -227,7 +231,8 @@
 		const source = searchQuery.trim() ? filteredStations : stations;
 
 		for (const station of source) {
-			const price = parseFloat(station.properties[selectedFuelType] ?? '');
+			const rawPrice = station.properties[selectedFuelType];
+			const price = parseFloat(String(rawPrice ?? ''));
 			if (isNaN(price)) continue;
 
 			const color = getPriceColor(price, priceRange.min, priceRange.max);
@@ -275,6 +280,12 @@
 		await loadViewportStations();
 	}
 
+	function onOpenOnlyChange(value: boolean) {
+		openOnly = value;
+		setOpenOnly(value);
+		loadViewportStations();
+	}
+
 	function closePanel() {
 		selectedStation = null;
 		selectedStationFullData = null;
@@ -298,6 +309,8 @@
 						...station,
 						properties: {
 							...station.properties,
+							opening_hours: data.station?.opening_hours ?? station.properties.opening_hours,
+							is_open: data.is_open ?? station.properties.is_open,
 							...data.prices.reduce(
 								(acc: Record<string, string>, p: { fuel_type: string; price: number }) => {
 									acc[p.fuel_type] = String(p.price);
@@ -437,7 +450,8 @@
 					lng: String(position.lng),
 					fuel: selectedFuelType,
 					limit: '10',
-					radius: String(radius)
+					radius: String(radius),
+					open_only: String(openOnly)
 				});
 				const res = await fetch(`/api/fuel/stations/nearest?${params}`);
 				if (res.ok) {
@@ -605,6 +619,13 @@
 			onblur={() => setTimeout(() => (showSuggestions = false), 200)}
 		/>
 		<FuelTypeSelector selected={selectedFuelType} onchange={onFuelTypeChange} />
+		<button
+			onclick={() => onOpenOnlyChange(!openOnly)}
+			class="flex items-center gap-1.5 bg-white rounded-lg shadow-lg px-3 py-2 text-sm font-medium text-gray-700 whitespace-nowrap shrink-0 active:bg-gray-50"
+		>
+			<span class="inline-block w-2 h-2 rounded-full {openOnly ? 'bg-green-500' : 'bg-gray-300'}"></span>
+			{openOnly ? 'Open' : 'All'}
+		</button>
 	</div>
 
 	<!-- Mobile: search + fuel dropdown at top -->
@@ -631,6 +652,13 @@
 					variant="dropdown"
 				/>
 			</div>
+		<button
+			onclick={() => onOpenOnlyChange(!openOnly)}
+			class="mt-1.5 flex items-center gap-1.5 bg-white rounded-lg shadow-lg px-2.5 py-1.5 text-xs font-medium text-gray-700 whitespace-nowrap active:bg-gray-50"
+		>
+			<span class="inline-block w-1.5 h-1.5 rounded-full {openOnly ? 'bg-green-500' : 'bg-gray-300'}"></span>
+			{openOnly ? 'Open now' : 'All'}
+		</button>
 		</div>
 	{/if}
 

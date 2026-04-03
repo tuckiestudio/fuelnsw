@@ -24,6 +24,8 @@
 		price: number;
 		distance_km: number;
 		drive_minutes: number;
+		is_open: boolean;
+		opening_hours: string | null;
 	}
 
 	let {
@@ -90,7 +92,12 @@
 						{/if}
 					</div>
 					<div class="flex-1 min-w-0">
-						<div class="font-medium text-sm text-gray-900 truncate">{station.name}</div>
+						<div class="font-medium text-sm text-gray-900 truncate">
+							{station.name}
+							{#if !station.is_open}
+								<span class="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded ml-1">Closed</span>
+							{/if}
+						</div>
 						<div class="text-xs text-gray-500">
 							{station.distance_km < 1
 								? `${Math.round(station.distance_km * 1000)}m`
