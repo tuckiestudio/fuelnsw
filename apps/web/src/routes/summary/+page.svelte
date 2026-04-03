@@ -179,7 +179,7 @@
 </script>
 
 <svelte:head>
-	<title>FuelNSW — Price Summary &amp; Availability</title>
+	<title>Fuel Scout NSW — Price Summary &amp; Availability</title>
 	<meta name="description" content="NSW fuel price summary with average prices, historical comparisons, and fuel availability monitoring across all stations." />
 </svelte:head>
 

@@ -1,10 +1,10 @@
 const KEYS = {
-	fuelType: 'fuelnsw_fuelType',
-	lastLat: 'fuelnsw_lastLat',
-	lastLng: 'fuelnsw_lastLng',
-	onboarded: 'fuelnsw_onboarded',
-	removeAds: 'fuelnsw_removeAds',
-	openOnly: 'fuelnsw_openOnly'
+	fuelType: 'fuelscoutnsw_fuelType',
+	lastLat: 'fuelscoutnsw_lastLat',
+	lastLng: 'fuelscoutnsw_lastLng',
+	onboarded: 'fuelscoutnsw_onboarded',
+	removeAds: 'fuelscoutnsw_removeAds',
+	openOnly: 'fuelscoutnsw_openOnly'
 } as const;
 
 function get<T>(key: string, fallback: T): T {

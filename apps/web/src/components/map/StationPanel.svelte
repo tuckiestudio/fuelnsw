@@ -144,7 +144,7 @@
 </script>
 
 <svelte:head>
-	<title>{station.properties.name} — FuelNSW</title>
+	<title>{station.properties.name} — Fuel Scout NSW</title>
 </svelte:head>
 
 <div

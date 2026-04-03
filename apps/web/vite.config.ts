@@ -13,8 +13,8 @@ export default defineConfig({
 			mode: 'production',
 			registerType: 'autoUpdate',
 			manifest: {
-				name: 'FuelNSW — Live NSW Fuel Prices',
-				short_name: 'FuelNSW',
+				name: 'Fuel Scout NSW — Live Fuel Prices',
+				short_name: 'Fuel Scout',
 				description: 'Real-time NSW fuel prices on an interactive map',
 				theme_color: '#16a34a',
 				background_color: '#ffffff',

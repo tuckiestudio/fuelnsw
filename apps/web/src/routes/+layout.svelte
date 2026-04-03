@@ -39,9 +39,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>FuelNSW — NSW Fuel Price Tracker</title>
+	<title>Fuel Scout NSW — Fuel Price Tracker</title>
 	<meta name="description" content="Track real-time NSW fuel prices. Compare E10, Unleaded, Premium, Diesel prices across all NSW service stations with live maps and historical charts." />
-	<meta property="og:title" content="FuelNSW — NSW Fuel Price Tracker" />
+	<meta property="og:title" content="Fuel Scout NSW — Fuel Price Tracker" />
 	<meta property="og:description" content="Track real-time NSW fuel prices with live maps, historical charts, and availability monitoring." />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
@@ -55,7 +55,7 @@
 					<div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M3 22V6l4-2v18H3zm6 0V8l4 2v12H9zm6 0V4l4 4v14h-4z"/></svg>
 					</div>
-					<span class="font-bold text-lg text-gray-900">FuelNSW</span>
+					<span class="font-bold text-lg text-gray-900">Fuel Scout NSW</span>
 				</a>
 				<div class="flex items-center gap-1">
 					<a
@@ -94,7 +94,7 @@
 
 	<footer class="bg-white border-t border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
 		<div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
-			<span>© {new Date().getFullYear()} AusFuel</span>
+			<span>© {new Date().getFullYear()} Fuel Scout NSW</span>
 			<span>Fuel price data sourced from the <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Government Fuel Check API</a></span>
 		</div>
 	</footer>

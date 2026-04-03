@@ -588,12 +588,12 @@
 </script>
 
 <svelte:head>
-	<title>FuelNSW — Live NSW Fuel Price Map</title>
+	<title>Fuel Scout NSW — Live NSW Fuel Price Map</title>
 	<meta
 		name="description"
 		content="Real-time NSW fuel prices on an interactive map. Compare E10, Unleaded, Premium 95/98, Diesel and more across all NSW service stations."
 	/>
-	<meta property="og:title" content="FuelNSW — Live NSW Fuel Price Map" />
+	<meta property="og:title" content="Fuel Scout NSW — Live NSW Fuel Price Map" />
 	<meta
 		property="og:description"
 		content="Real-time NSW fuel prices on an interactive map. Compare prices across all NSW service stations."

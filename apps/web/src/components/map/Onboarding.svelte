@@ -16,7 +16,7 @@
 			<div class="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M3 22V6l4-2v18H3zm6 0V8l4 2v12H9zm6 0V4l4 4v14h-4z"/></svg>
 			</div>
-			<h2 class="text-xl font-bold text-gray-900">Welcome to FuelNSW</h2>
+			<h2 class="text-xl font-bold text-gray-900">Welcome to Fuel Scout NSW</h2>
 			<p class="text-sm text-gray-500 mt-1">Select your usual fuel type to get started</p>
 		</div>
 
