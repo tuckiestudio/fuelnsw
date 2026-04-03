@@ -64,7 +64,7 @@
 <div class="absolute bottom-0 left-0 right-0 z-[1003]">
 	<div class="bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 sm:rounded-2xl sm:border max-w-md mx-auto">
 		{#if !adsRemoved}
-			<div class="bg-gray-50 border-b border-gray-200 rounded-t-2xl">
+			<div class="bg-gray-50 border-b border-gray-200 rounded-t-2xl pointer-events-none">
 				<AdSlot />
 			</div>
 		{/if}

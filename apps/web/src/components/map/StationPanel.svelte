@@ -156,7 +156,7 @@
 	bind:this={sheetEl}
 >
 	{#if !adsRemoved && (isCollapsed || !isMobile)}
-		<div class="shrink-0 bg-gray-50 border-b border-gray-200 h-[50px] overflow-hidden">
+		<div class="shrink-0 bg-gray-50 border-b border-gray-200 h-[50px] overflow-hidden pointer-events-none">
 			<AdSlot />
 		</div>
 	{/if}
