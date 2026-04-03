@@ -259,7 +259,7 @@ WebView shells loading the production web server directly. No bundled frontend �
 
 10. **`adsRemoved` on web** — Hardcoded `false` in `+layout.svelte`. Only read from localStorage on native.
 
-11. **Ad layout containment** — AdSlot has fixed `height:50px;overflow:hidden`. StationPanel and QuickFuelSheet wrappers also have `h-[50px] overflow-hidden`. The map container (`+page.svelte`) uses `overflow-hidden` to prevent absolute panels from extending past the viewport. Do not remove these constraints — AdSense `<ins>` expands unbounded without them.
+11. **Ad layout containment** — AdSlot uses `height:90px;overflow:hidden;pointer-events:none`. StationPanel wraps the ad in a `position:relative;height:90px` container with an `absolute inset-0 overflow-hidden` inner div. QuickFuelSheet has similar containment. The map container (`+page.svelte`) uses `overflow-hidden` to prevent absolute panels from extending past the viewport. Do not remove these constraints — AdSense `<ins>` expands unbounded without them. The absolute positioning ensures the ad can never push the scrollable content area.
 
 11. **`better-sqlite3` must be in web `package.json`** — `adapter-node` only externalizes packages in web's own `dependencies`. If transitive only, Rollup bundles it and crashes with `__filename is not defined`.
 

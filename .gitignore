@@ -11,3 +11,4 @@ data/xlsx-cache/
 data/import-progress.json
 data/boundaries/
 .DS_Store
+claude-audit.md
