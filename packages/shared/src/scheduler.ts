@@ -1,5 +1,5 @@
 import { getLatestRefreshTime, savePricesAndSnapshot } from './db/prices.js';
-import { upsertStations, getStationsNeedingHoursEnrichment, updateStationOpeningHours } from './db/stations.js';
+import { upsertStations, getStationsNeedingHoursEnrichment, updateStationOpeningHours, getAllStationsForHoursRefresh } from './db/stations.js';
 import { getDb } from './db/client.js';
 import { FUEL_TYPE_MAP } from './api/types.js';
 import { parseAddress } from './utils/parse-address.js';
@@ -11,7 +11,7 @@ import 'dotenv/config';
 const REFRESH_INTERVAL_MS = parseInt(process.env.SCHEDULER_INTERVAL_MS || '', 10) || 6 * 60 * 60 * 1000;
 const COOLDOWN_MS = parseInt(process.env.COOLDOWN_MS || '', 10) || 5 * 60 * 1000;
 
-	const HOURS_ENRICHMENT_DELAY_MS = 200;
+const HOURS_ENRICHMENT_DELAY_MS = 200;
 
 async function enrichOpeningHours(): Promise<void> {
 	if (!process.env.GOOGLE_PLACES_API_KEY) return;
@@ -19,7 +19,7 @@ async function enrichOpeningHours(): Promise<void> {
 	const stations = getStationsNeedingHoursEnrichment();
 	if (stations.length === 0) return;
 
-	console.log(`[scheduler] Enriching opening hours for ${stations.length} stations...`);
+	console.log(`[scheduler] Backfilling opening hours for ${stations.length} stations...`);
 	let updated = 0;
 
 	for (const station of stations) {
@@ -38,7 +38,39 @@ async function enrichOpeningHours(): Promise<void> {
 		}
 	}
 
-	console.log(`[scheduler] Opening hours enrichment complete — ${updated}/${stations.length} updated`);
+	console.log(`[scheduler] Opening hours backfill complete — ${updated}/${stations.length} updated`);
+}
+
+export async function refreshAllOpeningHours(): Promise<{ total: number; updated: number; failed: number }> {
+	if (!process.env.GOOGLE_PLACES_API_KEY) {
+		throw new Error('GOOGLE_PLACES_API_KEY not configured');
+	}
+
+	const stations = getAllStationsForHoursRefresh();
+	console.log(`[scheduler] Manual hours refresh for ${stations.length} stations...`);
+	let updated = 0;
+	let failed = 0;
+
+	for (const station of stations) {
+		try {
+			const hours = await fetchOpeningHoursForStation(
+				station.name,
+				station.address,
+				station.latitude,
+				station.longitude
+			);
+			updateStationOpeningHours(station.code, hours ? JSON.stringify(hours) : null);
+			if (hours) updated++;
+			else failed++;
+			await new Promise(r => setTimeout(r, HOURS_ENRICHMENT_DELAY_MS));
+		} catch (err) {
+			failed++;
+			console.error(`[scheduler] Failed to refresh hours for ${station.code}:`, err instanceof Error ? err.message : err);
+		}
+	}
+
+	console.log(`[scheduler] Manual hours refresh complete — ${updated}/${stations.length} updated, ${failed} failed`);
+	return { total: stations.length, updated, failed };
 }
 
 async function runRefresh(): Promise<void> {

@@ -230,7 +230,7 @@ export function getNearestStationsByPrice(
 		.slice(0, limit);
 }
 
-export function getStationsNeedingHoursEnrichment(maxAgeDays = 7): Array<{
+export function getStationsNeedingHoursEnrichment(limit = 500): Array<{
 	code: string;
 	name: string;
 	address: string;
@@ -243,16 +243,41 @@ export function getStationsNeedingHoursEnrichment(maxAgeDays = 7): Array<{
 		FROM stations
 		WHERE opening_hours IS NULL
 		   OR hours_last_fetched IS NULL
-		   OR julianday('now') - julianday(hours_last_fetched) > ?
-		ORDER BY hours_last_fetched ASC NULLS FIRST
-		LIMIT 100
-	`).all(maxAgeDays) as Array<{
+		ORDER BY code
+		LIMIT ?
+	`).all(limit) as Array<{
 		code: string;
 		name: string;
 		address: string;
 		latitude: number;
 		longitude: number;
 	}>;
+}
+
+export function getAllStationsForHoursRefresh(): Array<{
+	code: string;
+	name: string;
+	address: string;
+	latitude: number;
+	longitude: number;
+}> {
+	const db = getDb();
+	return db.prepare(`
+		SELECT code, name, address, latitude, longitude
+		FROM stations
+		ORDER BY code
+	`).all() as Array<{
+		code: string;
+		name: string;
+		address: string;
+		latitude: number;
+		longitude: number;
+	}>;
+}
+
+export function clearAllOpeningHours(): void {
+	const db = getDb();
+	db.prepare(`UPDATE stations SET opening_hours = NULL, hours_last_fetched = NULL`).run();
 }
 
 export function updateStationOpeningHours(code: string, hoursJson: string | null): void {
