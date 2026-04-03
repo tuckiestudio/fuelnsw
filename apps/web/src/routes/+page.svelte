@@ -743,11 +743,11 @@
 			onclose={() => (showQuickFuel = false)}
 		/>
 	{/if}
-
-	{#if showOnboarding}
-		<Onboarding onselect={completeOnboarding} />
-	{/if}
 </div>
+
+{#if showOnboarding}
+	<Onboarding onselect={completeOnboarding} />
+{/if}
 
 <style>
 	:global(.price-label) {
