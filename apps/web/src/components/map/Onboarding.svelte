@@ -10,7 +10,7 @@
 	let selected: string = $state('E10');
 </script>
 
-<div class="absolute inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
 	<div class="bg-white rounded-2xl shadow-2xl p-6 mx-4 max-w-sm w-full">
 		<div class="text-center mb-5">
 			<div class="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
