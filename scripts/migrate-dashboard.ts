@@ -144,7 +144,7 @@ function backfillWeeklyAggregates(db: any): { weeks: number; rows: number } {
     SELECT 
       DATE(hp.price_updated, 'weekday 0', '-6 days') as week_start,
       pcm.sa4_region,
-      s.brand_group,
+      COALESCE(s.brand_group, 'Unknown') as brand_group,
       CASE
         WHEN hp.fuel_type IN ('DL', 'Diesel') THEN 'Diesel'
         WHEN hp.fuel_type IN ('U91', 'Unleaded') THEN 'Unleaded'
