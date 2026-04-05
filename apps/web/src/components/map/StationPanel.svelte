@@ -9,6 +9,7 @@
 	import { navigateTo } from '$lib/navigation';
 	import { Capacitor } from '@capacitor/core';
 	import AdSlot from '$components/AdSlot.svelte';
+	import SuggestHours from '$components/station/SuggestHours.svelte';
 
 	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
 		if (!Capacitor.isNativePlatform()) return;
@@ -43,6 +44,9 @@
 	let dragStartHeight = 0;
 
 	let isCollapsed = $derived(sheetHeight < snapFull && sheetHeight > 0);
+
+	let showSuggestHours = $state(false);
+	let suggestionSubmitted = $state(false);
 
 	let openStatus = $derived((): { label: string; color: string; hours: string[] } | null => {
 		const hoursJson = station.properties.opening_hours as string | null | undefined;
@@ -220,6 +224,23 @@
 						{/each}
 					</div>
 				</div>
+			{:else if !openStatus()}
+				<div>
+					<div class="text-gray-500 text-xs mb-1">Opening Hours</div>
+					{#if suggestionSubmitted}
+						<p class="text-sm text-green-700">Thanks! Your suggestion has been submitted for review.</p>
+					{:else}
+						<div class="flex items-center gap-2">
+							<span class="text-sm text-gray-500 italic">Hours unavailable</span>
+							<button
+								onclick={() => (showSuggestHours = true)}
+								class="text-xs text-green-700 hover:text-green-800 font-medium underline underline-offset-2"
+							>
+								Suggest hours
+							</button>
+						</div>
+					{/if}
+				</div>
 			{/if}
 
 			<hr class="border-gray-200">
@@ -267,3 +288,11 @@
 		</div>
 	</div>
 </div>
+
+{#if showSuggestHours}
+	<SuggestHours
+		stationCode={station.properties.code}
+		onclose={() => (showSuggestHours = false)}
+		onsubmitted={() => { showSuggestHours = false; suggestionSubmitted = true; }}
+	/>
+{/if}

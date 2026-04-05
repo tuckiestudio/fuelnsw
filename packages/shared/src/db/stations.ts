@@ -241,9 +241,13 @@ export function getStationsNeedingHoursEnrichment(limit = 500): Array<{
 	return db.prepare(`
 		SELECT code, name, address, latitude, longitude
 		FROM stations
-		WHERE opening_hours IS NULL
+		WHERE hours_fetch_status IS NULL
 		   OR hours_last_fetched IS NULL
-		ORDER BY code
+		   OR (hours_fetch_status = 'found' AND hours_last_fetched < datetime('now', '-30 days'))
+		ORDER BY CASE
+			WHEN hours_fetch_status IS NULL OR hours_last_fetched IS NULL THEN 0
+			ELSE 1
+		END, code
 		LIMIT ?
 	`).all(limit) as Array<{
 		code: string;
@@ -265,6 +269,7 @@ export function getAllStationsForHoursRefresh(): Array<{
 	return db.prepare(`
 		SELECT code, name, address, latitude, longitude
 		FROM stations
+		WHERE hours_fetch_status IS NULL OR hours_fetch_status != 'not_found'
 		ORDER BY code
 	`).all() as Array<{
 		code: string;
@@ -277,7 +282,7 @@ export function getAllStationsForHoursRefresh(): Array<{
 
 export function clearAllOpeningHours(): void {
 	const db = getDb();
-	db.prepare(`UPDATE stations SET opening_hours = NULL, hours_last_fetched = NULL`).run();
+	db.prepare(`UPDATE stations SET opening_hours = NULL, hours_last_fetched = NULL, hours_fetch_status = NULL`).run();
 }
 
 export function updateStationOpeningHours(code: string, hoursJson: string | null): void {
@@ -286,14 +291,16 @@ export function updateStationOpeningHours(code: string, hoursJson: string | null
 		db.prepare(`
 			UPDATE stations
 			SET opening_hours = ?,
-			    hours_last_fetched = datetime('now')
+			    hours_last_fetched = datetime('now'),
+			    hours_fetch_status = 'found'
 			WHERE code = ?
 		`).run(hoursJson, code);
 	} else {
 		db.prepare(`
 			UPDATE stations
 			SET opening_hours = NULL,
-			    hours_last_fetched = NULL
+			    hours_last_fetched = datetime('now'),
+			    hours_fetch_status = 'not_found'
 			WHERE code = ?
 		`).run(code);
 	}

@@ -94,6 +94,20 @@ export function initializeSchema(): void {
 
 		CREATE INDEX IF NOT EXISTS idx_pending_drops_miss_count
 			ON pending_drops(miss_count);
+
+		CREATE TABLE IF NOT EXISTS hours_suggestions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			station_code TEXT NOT NULL REFERENCES stations(code),
+			opening_hours TEXT NOT NULL,
+			submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+			status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected'))
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_hours_suggestions_status
+			ON hours_suggestions(status, submitted_at DESC);
+
+		CREATE INDEX IF NOT EXISTS idx_hours_suggestions_station
+			ON hours_suggestions(station_code, status);
 	`);
 
 	const tableInfo = db.prepare("PRAGMA table_info(stations)").all() as { name: string }[];
@@ -103,6 +117,9 @@ export function initializeSchema(): void {
 	}
 	if (!columns.includes('hours_last_fetched')) {
 		db.exec("ALTER TABLE stations ADD COLUMN hours_last_fetched TEXT");
+	}
+	if (!columns.includes('hours_fetch_status')) {
+		db.exec("ALTER TABLE stations ADD COLUMN hours_fetch_status TEXT CHECK(hours_fetch_status IN ('found', 'not_found'))");
 	}
 	if (!columns.includes('brand_group')) {
 		db.exec("ALTER TABLE stations ADD COLUMN brand_group TEXT");
