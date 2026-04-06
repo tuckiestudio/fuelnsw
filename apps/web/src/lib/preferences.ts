@@ -4,7 +4,8 @@ const KEYS = {
 	lastLng: 'fuelscoutnsw_lastLng',
 	onboarded: 'fuelscoutnsw_onboarded',
 	removeAds: 'fuelscoutnsw_removeAds',
-	openOnly: 'fuelscoutnsw_openOnly'
+	openOnly: 'fuelscoutnsw_openOnly',
+	navApp: 'fuelscoutnsw_navApp'
 } as const;
 
 function get<T>(key: string, fallback: T): T {
@@ -66,4 +67,14 @@ export function getOpenOnly(): boolean {
 
 export function setOpenOnly(value: boolean): void {
 	set(KEYS.openOnly, value);
+}
+
+export type NavApp = 'apple' | 'google';
+
+export function getNavApp(): NavApp | null {
+	return get<NavApp | null>(KEYS.navApp, null);
+}
+
+export function setNavApp(value: NavApp): void {
+	set(KEYS.navApp, value);
 }

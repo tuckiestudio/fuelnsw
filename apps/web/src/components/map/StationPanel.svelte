@@ -10,6 +10,7 @@
 	import { Capacitor } from '@capacitor/core';
 	import AdSlot from '$components/AdSlot.svelte';
 	import SuggestHours from '$components/station/SuggestHours.svelte';
+	import NavAppPicker from '$components/map/NavAppPicker.svelte';
 
 	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
 		if (!Capacitor.isNativePlatform()) return;
@@ -47,6 +48,7 @@
 
 	let showSuggestHours = $state(false);
 	let suggestionSubmitted = $state(false);
+	let showNavPicker = $state(false);
 
 	let openStatus = $derived((): { label: string; color: string; hours: string[] } | null => {
 		const hoursJson = station.properties.opening_hours as string | null | undefined;
@@ -146,6 +148,13 @@
 		sheetHeight = sheetHeight >= snapFull ? snapHalf : snapFull;
 		hapticImpact('Light');
 	}
+
+	async function handleNavigate() {
+		const result = await navigateTo(station.geometry.coordinates[1], station.geometry.coordinates[0], station.properties.name);
+		if (!result.ok && result.reason === 'needs_choice') {
+			showNavPicker = true;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -208,7 +217,7 @@
 
 			<button
 			type="button"
-			onclick={() => navigateTo(station.geometry.coordinates[1], station.geometry.coordinates[0], station.properties.name)}
+			onclick={handleNavigate}
 			class="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-medium transition-colors"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
@@ -294,5 +303,14 @@
 		stationCode={station.properties.code}
 		onclose={() => (showSuggestHours = false)}
 		onsubmitted={() => { showSuggestHours = false; suggestionSubmitted = true; }}
+	/>
+{/if}
+
+{#if showNavPicker}
+	<NavAppPicker
+		lat={station.geometry.coordinates[1]}
+		lng={station.geometry.coordinates[0]}
+		name={station.properties.name}
+		onclose={() => (showNavPicker = false)}
 	/>
 {/if}

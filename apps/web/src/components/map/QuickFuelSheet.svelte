@@ -4,6 +4,7 @@
 	import { getRemoveAds } from '$lib/preferences';
 	import { Capacitor } from '@capacitor/core';
 	import AdSlot from '$components/AdSlot.svelte';
+	import NavAppPicker from '$components/map/NavAppPicker.svelte';
 
 	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
 		if (!Capacitor.isNativePlatform()) return;
@@ -40,11 +41,17 @@
 	} = $props();
 
 	let adsRemoved = $state(getRemoveAds());
+	let showNavPicker = $state(false);
+	let pendingNavStation: NearestStation | null = $state(null);
 
 	async function handleNavigate(station: NearestStation) {
 		hapticImpact('Medium');
 		await maybeShowInterstitial();
-		await navigateTo(station.latitude, station.longitude, station.name);
+		const result = await navigateTo(station.latitude, station.longitude, station.name);
+		if (!result.ok && result.reason === 'needs_choice') {
+			pendingNavStation = station;
+			showNavPicker = true;
+		}
 	}
 
 	let maxDistance = $derived(
@@ -115,3 +122,12 @@
 		</div>
 	</div>
 </div>
+
+{#if showNavPicker && pendingNavStation}
+	<NavAppPicker
+		lat={pendingNavStation.latitude}
+		lng={pendingNavStation.longitude}
+		name={pendingNavStation.name}
+		onclose={() => { showNavPicker = false; pendingNavStation = null; }}
+	/>
+{/if}
