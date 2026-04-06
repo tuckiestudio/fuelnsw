@@ -2,6 +2,7 @@
 	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
 	import { Capacitor } from '@capacitor/core';
+	import { navigateTo } from '$lib/navigation';
 
 	async function hapticImpact(style: 'Light' | 'Medium' | 'Heavy' = 'Medium') {
 		if (!Capacitor.isNativePlatform()) return;
@@ -117,28 +118,34 @@
 					{@const price = getPrice(station)}
 					{@const dist = getDistance(station)}
 					{@const color = getPriceColor(price, sortedStations.length > 1 ? Math.min(...sortedStations.map(getPrice)) : price, sortedStations.length > 1 ? Math.max(...sortedStations.map(getPrice)) : price)}
-					<button
-						onclick={() => { hapticImpact('Light'); onselect?.(station); }}
-						class="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-					>
-						<div class="w-8 h-6 rounded flex items-center justify-center shrink-0 text-white font-bold text-[10px] leading-none" style="background:{color}">
-							{price.toFixed(1)}
-						</div>
-						<div class="flex-1 min-w-0">
-							<div class="font-medium text-sm text-gray-900 truncate">
-								{station.properties.name}
+					<div class="flex items-center px-3 sm:px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+						<button
+							onclick={() => { hapticImpact('Light'); onselect?.(station); }}
+							class="flex-1 flex items-center gap-3 min-w-0 text-left"
+						>
+							<div class="w-8 h-6 rounded flex items-center justify-center shrink-0 text-white font-bold text-[10px] leading-none" style="background:{color}">
+								{price.toFixed(1)}
 							</div>
-							<div class="text-xs text-gray-500 truncate">
-								{station.properties.brand ?? ''} · {station.properties.suburb}
+							<div class="flex-1 min-w-0">
+								<div class="font-medium text-sm text-gray-900 truncate">
+									{station.properties.name}
+								</div>
+								<div class="text-xs text-gray-500 truncate">
+									{station.properties.brand ?? ''} · {station.properties.suburb}
+									{#if userPosition && dist !== Infinity}
+										· {formatDistance(dist)}
+									{/if}
+								</div>
 							</div>
-						</div>
-						<div class="text-right shrink-0">
-							{#if userPosition && dist !== Infinity}
-								<div class="text-xs text-gray-500">{formatDistance(dist)}</div>
-							{/if}
-							<div class="text-[10px] text-gray-400">{fuelType}</div>
-						</div>
-					</button>
+						</button>
+						<button
+							onclick={() => navigateTo(station.geometry.coordinates[1], station.geometry.coordinates[0], station.properties.name)}
+							class="shrink-0 ml-2 p-1 rounded hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-blue-600 transition-colors"
+							aria-label="Navigate to {station.properties.name}"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+						</button>
+					</div>
 				{/each}
 			</div>
 		{/if}
