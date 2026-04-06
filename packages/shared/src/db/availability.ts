@@ -30,7 +30,7 @@ export function snapshotFuelAvailability(): Map<string, { price: number }> {
 	return map;
 }
 
-const CONSECUTIVE_MISS_THRESHOLD = 2;
+const CONSECUTIVE_MISS_THRESHOLD = 1;
 
 export function detectAndRecordChanges(
 	before: Map<string, { price: number }>,

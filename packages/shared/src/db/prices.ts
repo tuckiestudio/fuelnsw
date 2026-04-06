@@ -41,12 +41,19 @@ export function savePricesAndSnapshot(prices: Array<{
 	const histStmt = db.prepare(UPSERT_HISTORICAL);
 	const invStmt = db.prepare(UPSERT_FUEL_INVENTORY);
 
+	const deleteStale = db.prepare(
+		"DELETE FROM live_prices WHERE fetched_at < datetime('now', '-1 minute')"
+	);
+
 	const transaction = db.transaction((items: typeof prices) => {
 		for (const p of items) {
 			const normalizedFuel = FUEL_TYPE_MAP[p.fueltype] || p.fueltype;
 			liveStmt.run(p.stationcode, normalizedFuel, p.price, p.lastupdated);
 			histStmt.run(p.stationcode, normalizedFuel, p.price, today);
 			invStmt.run(p.stationcode, normalizedFuel, today, today);
+		}
+		if (items.length > 0) {
+			deleteStale.run();
 		}
 	});
 
