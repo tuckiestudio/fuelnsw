@@ -11,6 +11,7 @@
 	import LocateButton from '$components/map/LocateButton.svelte';
 	import QuickFuelButton from '$components/map/QuickFuelButton.svelte';
 	import QuickFuelSheet from '$components/map/QuickFuelSheet.svelte';
+	import StationListPanel from '$components/map/StationListPanel.svelte';
 	import {
 		getFuelType,
 		setFuelType as saveFuelType,
@@ -47,6 +48,7 @@
 	let quickFuelStations: any[] = $state([]);
 	let isMobile = $state(true);
 	let openOnly = $state(getOpenOnly());
+	let showStationList = $state(false);
 
 	function escapeHtml(str: string): string {
 		return str
@@ -82,7 +84,7 @@
 	);
 
 	let resolvedStation = $derived(selectedStationFullData || selectedStation);
-	let hideMobileControls = $derived((!!resolvedStation || showQuickFuel) && isMobile);
+	let hideMobileControls = $derived((!!resolvedStation || showQuickFuel || showStationList) && isMobile);
 
 	async function loadLocations() {
 		try {
@@ -293,11 +295,13 @@
 
 	function closeAllPanels() {
 		showQuickFuel = false;
+		showStationList = false;
 		closePanel();
 	}
 
 	async function selectStation(station: StationGeoJSON) {
 		showQuickFuel = false;
+		showStationList = false;
 		selectedStation = station;
 		selectedStationFullData = null;
 		try {
@@ -626,6 +630,16 @@
 			<span class="inline-block w-2 h-2 rounded-full {openOnly ? 'bg-green-500' : 'bg-gray-300'}"></span>
 			{openOnly ? 'Open' : 'All'}
 		</button>
+		{#if !showStationList}
+			<button
+				onclick={() => (showStationList = true)}
+				class="flex items-center gap-1.5 bg-white rounded-lg shadow-lg px-3 py-2 text-sm font-medium text-gray-700 whitespace-nowrap shrink-0 active:bg-gray-50"
+				aria-label="Station list"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+				List
+			</button>
+		{/if}
 	</div>
 
 	<!-- Mobile: search + fuel dropdown at top -->
@@ -684,6 +698,20 @@
 		<QuickFuelButton onclick={openQuickFuel} loading={quickFuelLoading} />
 	{/if}
 
+	{#if !hideMobileControls && !showSuggestions && !showStationList}
+		<button
+			onclick={() => (showStationList = true)}
+			class="sm:hidden absolute top-[72px] right-3 z-[1001]
+				bg-white hover:bg-gray-50 active:bg-gray-100
+				text-gray-700 font-semibold text-sm shadow-lg rounded-full
+				w-10 h-10
+				transition-all active:scale-95 flex items-center justify-center whitespace-nowrap"
+			aria-label="Station list"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+		</button>
+	{/if}
+
 	<div bind:this={mapContainer} class="flex-1"></div>
 
 	{#if loading}
@@ -721,7 +749,7 @@
 		</div>
 	{/if}
 
-	{#if (resolvedStation || showQuickFuel) && isMobile}
+	{#if (resolvedStation || showQuickFuel || (showStationList && isMobile)) && isMobile}
 		<div
 			class="absolute inset-0 bg-black/30 z-[1002]"
 			role="button"
@@ -741,6 +769,16 @@
 			stations={quickFuelStations}
 			fuelType={selectedFuelType}
 			onclose={() => (showQuickFuel = false)}
+		/>
+	{/if}
+
+	{#if showStationList}
+		<StationListPanel
+			stations={searchQuery.trim() ? filteredStations : stations}
+			fuelType={selectedFuelType}
+			{userPosition}
+			onclose={() => (showStationList = false)}
+			onselect={(station) => { showStationList = false; selectStation(station); }}
 		/>
 	{/if}
 </div>
