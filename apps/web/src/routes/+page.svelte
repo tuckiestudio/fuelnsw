@@ -36,6 +36,10 @@
 	let priceRange = $state({ min: 0, max: 0 });
 	let clusterLayer: any;
 	let L: any;
+	let markerMap = new Map<string, any>();
+	let stationMap = new Map<string, StationGeoJSON>();
+	let hoveredStationCode: string | null = $state(null);
+	let hoverTooltip: any = null;
 	let searchQuery: string = $state('');
 	let showSuggestions: boolean = $state(false);
 	let postcodeBoundary: any = null;
@@ -85,6 +89,52 @@
 
 	let resolvedStation = $derived(selectedStationFullData || selectedStation);
 	let hideMobileControls = $derived((!!resolvedStation || showQuickFuel || showStationList) && isMobile);
+
+	function showStationHover(code: string) {
+		if (!map || !L) return;
+		hideStationHover();
+		const station = stationMap.get(code);
+		if (!station) return;
+		const knownFuels = ['E10', 'Unleaded', 'P95', 'P98', 'Diesel', 'PDL', 'LPG', 'E85', 'B20'];
+		const stationFuels = knownFuels.filter(f => station.properties[f] != null);
+		const fuelRows = stationFuels
+			.map(f => {
+				const val = parseFloat(String(station.properties[f]));
+				if (isNaN(val)) return '';
+				const color = FUEL_COLORS[f] ?? '#94a3b8';
+				const isHighlighted = f === selectedFuelType;
+				const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
+				const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
+				return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}">${val.toFixed(1)}</span></div>`;
+			})
+			.filter(Boolean)
+			.join('');
+		const html = `<div class="station-tooltip">` +
+			`<div class="tooltip-name">${escapeHtml(station.properties.name)}</div>` +
+			`<div class="tooltip-fuels">${fuelRows}</div>` +
+		`</div>`;
+		hoverTooltip = L.tooltip({ permanent: true, direction: 'top', offset: [0, -8], className: 'station-tooltip-container' })
+			.setLatLng([station.geometry.coordinates[1], station.geometry.coordinates[0]])
+			.setContent(html)
+			.addTo(map);
+		const marker = markerMap.get(code);
+		if (marker) {
+			const el = marker.getElement();
+			if (el) el.querySelector('.price-label')?.classList.add('price-label-hover');
+		}
+	}
+
+	function hideStationHover() {
+		if (!map || !L) return;
+		markerMap.forEach((marker) => {
+			const el = marker.getElement();
+			if (el) el.querySelector('.price-label')?.classList.remove('price-label-hover');
+		});
+		if (hoverTooltip) {
+			hoverTooltip.remove();
+			hoverTooltip = null;
+		}
+	}
 
 	async function loadLocations() {
 		try {
@@ -229,6 +279,8 @@
 	function renderMarkers() {
 		if (!clusterLayer || !L) return;
 		clusterLayer.clearLayers();
+		markerMap.clear();
+		stationMap.clear();
 
 		const source = searchQuery.trim() ? filteredStations : stations;
 
@@ -269,17 +321,18 @@
 			marker.bindTooltip(
 				`<div class="station-tooltip">` +
 					`<div class="tooltip-name">${escapeHtml(station.properties.name)}</div>` +
-					`<div class="tooltip-suburb">${escapeHtml(station.properties.brand ?? '')} · ${escapeHtml(station.properties.suburb)}</div>` +
 					`<div class="tooltip-fuels">${fuelRows}</div>` +
 				`</div>`,
 				{ direction: 'top', offset: [0, -8], className: 'station-tooltip-container' }
 			);
 
 			marker.on('mouseover', () => {
+				hoveredStationCode = station.properties.code;
 				const el = marker.getElement();
 				if (el) el.querySelector('.price-label')?.classList.add('price-label-hover');
 			});
 			marker.on('mouseout', () => {
+				hoveredStationCode = null;
 				const el = marker.getElement();
 				if (el) el.querySelector('.price-label')?.classList.remove('price-label-hover');
 			});
@@ -289,6 +342,8 @@
 			});
 
 			clusterLayer.addLayer(marker);
+			markerMap.set(station.properties.code, marker);
+			stationMap.set(station.properties.code, station);
 		}
 	}
 
@@ -801,8 +856,11 @@
 			stations={searchQuery.trim() ? filteredStations : stations}
 			fuelType={selectedFuelType}
 			{userPosition}
+			hoveredStationCode={hoveredStationCode}
 			onclose={() => (showStationList = false)}
 			onselect={(station) => { showStationList = false; selectStation(station); }}
+			onhover={(station) => { showStationHover(station.properties.code); hoveredStationCode = station.properties.code; }}
+			onleave={() => { hideStationHover(); hoveredStationCode = null; }}
 		/>
 	{/if}
 </div>

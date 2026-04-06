@@ -16,14 +16,20 @@
 		stations = [],
 		fuelType,
 		userPosition,
+		hoveredStationCode,
 		onclose,
-		onselect
+		onselect,
+		onhover,
+		onleave
 	}: {
 		stations: StationGeoJSON[];
 		fuelType: string;
 		userPosition: { lat: number; lng: number } | null;
+		hoveredStationCode?: string | null;
 		onclose?: () => void;
 		onselect?: (station: StationGeoJSON) => void;
+		onhover?: (station: StationGeoJSON) => void;
+		onleave?: () => void;
 	} = $props();
 
 	type SortMode = 'price' | 'distance';
@@ -118,7 +124,11 @@
 					{@const price = getPrice(station)}
 					{@const dist = getDistance(station)}
 					{@const color = getPriceColor(price, sortedStations.length > 1 ? Math.min(...sortedStations.map(getPrice)) : price, sortedStations.length > 1 ? Math.max(...sortedStations.map(getPrice)) : price)}
-					<div class="flex items-center px-3 sm:px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="flex items-center px-3 sm:px-4 py-2.5 transition-colors {hoveredStationCode === station.properties.code ? 'bg-gray-50' : 'hover:bg-gray-50'} active:bg-gray-100"
+					 onmouseenter={() => onhover?.(station)}
+					 onmouseleave={() => onleave?.()}
+					>
 						<button
 							onclick={() => { hapticImpact('Light'); onselect?.(station); }}
 							class="flex-1 flex items-center gap-3 min-w-0 text-left"

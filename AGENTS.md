@@ -143,7 +143,7 @@ All dashboard endpoints accept optional query params: `regions`, `brands`, `fuel
 - **Component alias** — `$components` → `src/components` in both apps.
 - **CSS** — Tailwind v4 via `@tailwindcss/vite`. Single `@import 'tailwindcss'` in `app.css`.
 - **Charts** — `chart.js` loaded dynamically via `import('chart.js')` (not bundled in SSR).
-- **Maps** — `leaflet` + `leaflet.markercluster`.
+- **Maps** — `leaflet` + `leaflet.markercluster`. Markers stored in `markerMap` (code → marker) and `stationMap` (code → StationGeoJSON) for lookup by station code.
 - **Server-only code** — DB and scheduler imports only in `+server.ts` and `hooks.server.ts`. Never import in client-side code.
 
 ## Architecture
