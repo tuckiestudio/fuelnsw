@@ -7,8 +7,7 @@
 		totalStations: number;
 		stationsWithPrices: number;
 		totalPrices: number;
-		avgPrices: Record<string, number>;
-		historicalAvgPrices: Record<string, { avg: number; min: number; max: number; days: number }>;
+		priceStats: Record<string, { avg: number; min: number; max: number; stations: number }>;
 		dryCount: number;
 		offlineCount: number;
 		lastRefresh: string | null;
@@ -217,25 +216,10 @@
 			</div>
 		</div>
 
-		<!-- Average Prices -->
-		{#if Object.keys(stats.avgPrices).length > 0}
+		<!-- Current Price Stats -->
+		{#if stats.priceStats && Object.keys(stats.priceStats).length > 0}
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-				<h2 class="text-lg font-semibold text-gray-900 mb-3">Average Prices (c/L)</h2>
-				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-					{#each Object.entries(stats.avgPrices) as [fuel, price]}
-						<div class="text-center py-2 px-3 bg-gray-50 rounded-md">
-							<div class="text-xs text-gray-500">{fuel}</div>
-							<div class="text-lg font-bold">{(price as number).toFixed(1)}</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<!-- Historical Average Prices -->
-		{#if stats.historicalAvgPrices && Object.keys(stats.historicalAvgPrices).length > 0}
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-				<h2 class="text-lg font-semibold text-gray-900 mb-3">Historical Prices (c/L)</h2>
+				<h2 class="text-lg font-semibold text-gray-900 mb-3">Current Prices (c/L)</h2>
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<thead>
@@ -244,29 +228,20 @@
 								<th class="px-4 py-2 font-medium text-gray-500">Average</th>
 								<th class="px-4 py-2 font-medium text-gray-500">Min</th>
 								<th class="px-4 py-2 font-medium text-gray-500">Max</th>
-								<th class="px-4 py-2 font-medium text-gray-500">Days</th>
-								<th class="px-4 py-2 font-medium text-gray-500">vs Current</th>
+								<th class="px-4 py-2 font-medium text-gray-500">Stations</th>
 							</tr>
 						</thead>
 						<tbody>
-							{#each Object.entries(stats.historicalAvgPrices) as [fuel, hist]}
-								{@const currentPrice = stats.avgPrices[fuel]}
+							{#each Object.entries(stats.priceStats) as [fuel, s]}
 								<tr class="border-t border-gray-100 hover:bg-gray-50">
-									<td class="px-4 py-2 font-medium text-gray-900">{fuel}</td>
-									<td class="px-4 py-2">{hist.avg.toFixed(1)}</td>
-									<td class="px-4 py-2 text-green-600">{hist.min.toFixed(1)}</td>
-									<td class="px-4 py-2 text-red-600">{hist.max.toFixed(1)}</td>
-									<td class="px-4 py-2 text-gray-500">{hist.days.toLocaleString()}</td>
-									<td class="px-4 py-2">
-										{#if currentPrice}
-											{@const diff = currentPrice - hist.avg}
-											<span class="{diff > 0 ? 'text-red-600' : diff < 0 ? 'text-green-600' : 'text-gray-500'}">
-												{diff > 0 ? '+' : ''}{diff.toFixed(1)}
-											</span>
-										{:else}
-											<span class="text-gray-400">&mdash;</span>
-										{/if}
+									<td class="px-4 py-2 font-medium text-gray-900">
+										<span class="inline-block w-3 h-3 rounded-full mr-2" style="background: {FUEL_COLORS[fuel] ?? '#6b7280'}"></span>
+										{FUEL_LABELS[fuel] ?? fuel}
 									</td>
+									<td class="px-4 py-2">{s.avg.toFixed(1)}</td>
+									<td class="px-4 py-2 text-green-600">{s.min.toFixed(1)}</td>
+									<td class="px-4 py-2 text-red-600">{s.max.toFixed(1)}</td>
+									<td class="px-4 py-2 text-gray-500">{s.stations.toLocaleString()}</td>
 								</tr>
 							{/each}
 						</tbody>

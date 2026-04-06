@@ -1,28 +1,22 @@
 import { getDb } from './client.js';
 
-interface HistRow {
-	fuel_type: string;
-	avg_price: number;
-	min_price: number;
-	max_price: number;
-	days: number;
-}
-
 interface CountRow {
 	c: number;
 }
 
-interface AvgRow {
+interface PriceStatsRow {
 	fuel_type: string;
 	avg_price: number;
+	min_price: number;
+	max_price: number;
+	station_count: number;
 }
 
 export function getSummaryStats(): {
 	totalStations: number;
 	stationsWithPrices: number;
 	totalPrices: number;
-	avgPrices: Record<string, number>;
-	historicalAvgPrices: Record<string, { avg: number; min: number; max: number; days: number }>;
+	priceStats: Record<string, { avg: number; min: number; max: number; stations: number }>;
 	dryCount: number;
 	offlineCount: number;
 	lastRefresh: string | null;
@@ -33,37 +27,25 @@ export function getSummaryStats(): {
 	const stationsWithPrices = (db.prepare('SELECT COUNT(DISTINCT station_code) as c FROM live_prices WHERE price IS NOT NULL').get() as CountRow).c;
 	const totalPrices = (db.prepare('SELECT COUNT(*) as c FROM live_prices WHERE price IS NOT NULL').get() as CountRow).c;
 
-	const avgRows = db.prepare(`
-		SELECT fuel_type, AVG(price) as avg_price
-		FROM live_prices
-		WHERE price IS NOT NULL
-		GROUP BY fuel_type
-		ORDER BY fuel_type
-	`).all() as AvgRow[];
-
-	const avgPrices: Record<string, number> = {};
-	for (const row of avgRows) {
-		avgPrices[row.fuel_type] = Math.round(row.avg_price * 10) / 10;
-	}
-
-	const histRows = db.prepare(`
+	const rows = db.prepare(`
 		SELECT fuel_type,
 			AVG(price) as avg_price,
 			MIN(price) as min_price,
 			MAX(price) as max_price,
-			COUNT(DISTINCT price_updated) as days
-		FROM historical_prices
+			COUNT(DISTINCT station_code) as station_count
+		FROM live_prices
+		WHERE price IS NOT NULL
 		GROUP BY fuel_type
 		ORDER BY fuel_type
-	`).all() as HistRow[];
+	`).all() as PriceStatsRow[];
 
-	const historicalAvgPrices: Record<string, { avg: number; min: number; max: number; days: number }> = {};
-	for (const row of histRows) {
-		historicalAvgPrices[row.fuel_type] = {
+	const priceStats: Record<string, { avg: number; min: number; max: number; stations: number }> = {};
+	for (const row of rows) {
+		priceStats[row.fuel_type] = {
 			avg: Math.round(row.avg_price * 10) / 10,
 			min: Math.round(row.min_price * 10) / 10,
 			max: Math.round(row.max_price * 10) / 10,
-			days: row.days
+			stations: row.station_count
 		};
 	}
 
@@ -111,5 +93,5 @@ export function getSummaryStats(): {
 	const refreshRow = db.prepare('SELECT fetched_at FROM refresh_log ORDER BY id DESC LIMIT 1').get() as { fetched_at: string } | undefined;
 	const lastRefresh = refreshRow?.fetched_at ?? null;
 
-	return { totalStations, stationsWithPrices, totalPrices, avgPrices, historicalAvgPrices, dryCount, offlineCount, lastRefresh };
+	return { totalStations, stationsWithPrices, totalPrices, priceStats, dryCount, offlineCount, lastRefresh };
 }
