@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
+	import { getPriceColor, FUEL_COLORS } from '@fuelnsw/shared/utils/fuel-types';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
 	import { Capacitor } from '@capacitor/core';
 	import SearchBar from '$components/map/SearchBar.svelte';
@@ -251,14 +251,38 @@
 			const marker = L.marker([lat, lng], { icon });
 			(marker as any).price = price;
 
-			const priceStr = price.toFixed(1);
+			const knownFuels = ['E10', 'Unleaded', 'P95', 'P98', 'Diesel', 'PDL', 'LPG', 'E85', 'B20'];
+			const stationFuels = knownFuels.filter(f => station.properties[f] != null);
+			let fuelRows = stationFuels
+				.map(f => {
+					const val = parseFloat(String(station.properties[f]));
+					if (isNaN(val)) return '';
+					const color = FUEL_COLORS[f] ?? '#94a3b8';
+					const isHighlighted = f === selectedFuelType;
+					const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
+					const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
+					return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}">${val.toFixed(1)}</span></div>`;
+				})
+				.filter(Boolean)
+				.join('');
+
 			marker.bindTooltip(
-				`<strong>${escapeHtml(station.properties.name)}</strong><br/>` +
-					`${escapeHtml(station.properties.brand ?? '')}<br/>` +
-					`${escapeHtml(station.properties.suburb)}<br/>` +
-					`${selectedFuelType}: <strong>${escapeHtml(priceStr)}</strong> c/L`,
-				{ direction: 'top', offset: [0, -8] }
+				`<div class="station-tooltip">` +
+					`<div class="tooltip-name">${escapeHtml(station.properties.name)}</div>` +
+					`<div class="tooltip-suburb">${escapeHtml(station.properties.brand ?? '')} · ${escapeHtml(station.properties.suburb)}</div>` +
+					`<div class="tooltip-fuels">${fuelRows}</div>` +
+				`</div>`,
+				{ direction: 'top', offset: [0, -8], className: 'station-tooltip-container' }
 			);
+
+			marker.on('mouseover', () => {
+				const el = marker.getElement();
+				if (el) el.querySelector('.price-label')?.classList.add('price-label-hover');
+			});
+			marker.on('mouseout', () => {
+				const el = marker.getElement();
+				if (el) el.querySelector('.price-label')?.classList.remove('price-label-hover');
+			});
 
 			marker.on('click', () => {
 				selectStation(station);
@@ -799,6 +823,90 @@
 		border: 1px solid rgba(0, 0, 0, 0.2);
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 		line-height: 1.4;
+		transition: transform 0.15s ease, box-shadow 0.15s ease;
+	}
+
+	:global(.price-label-hover) {
+		transform: scale(1.2);
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+		z-index: 10000 !important;
+		position: relative;
+	}
+
+	:global(.station-tooltip-container) {
+		border: none !important;
+		border-radius: 10px !important;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+		padding: 0 !important;
+		opacity: 1 !important;
+	}
+
+	:global(.station-tooltip-container .leaflet-tooltip-content) {
+		margin: 0;
+	}
+
+	:global(.station-tooltip-container::before) {
+		border-top-color: #1e293b !important;
+	}
+
+	:global(.station-tooltip) {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		min-width: 160px;
+	}
+
+	:global(.tooltip-name) {
+		font-weight: 700;
+		font-size: 13px;
+		color: #1e293b;
+		padding: 8px 10px 2px;
+		line-height: 1.3;
+	}
+
+	:global(.tooltip-suburb) {
+		font-size: 11px;
+		color: #64748b;
+		padding: 0 10px 6px;
+		border-bottom: 1px solid #e2e8f0;
+		margin-bottom: 4px;
+	}
+
+	:global(.tooltip-fuels) {
+		padding: 4px 10px 8px;
+	}
+
+	:global(.fuel-row) {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 2px 0;
+		font-size: 12px;
+		color: #334155;
+	}
+
+	:global(.fuel-row.highlighted) {
+		background: #f1f5f9;
+		margin: 0 -10px;
+		padding: 2px 10px;
+		border-radius: 3px;
+	}
+
+	:global(.fuel-dot) {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	:global(.fuel-name) {
+		flex: 1;
+		color: #475569;
+		font-size: 11px;
+	}
+
+	:global(.fuel-price) {
+		font-variant-numeric: tabular-nums;
+		font-size: 12px;
+		color: #1e293b;
 	}
 
 	:global(.marker-cluster) {
