@@ -70,7 +70,7 @@
 	);
 
 	function getDiscountedPrice(station: NearestStation): number {
-		const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts());
+		const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts(), station.code);
 		return Math.max(0, station.price - discount.totalDiscount);
 	}
 
@@ -97,7 +97,7 @@
 		</div>
 		<div class="px-4 pb-4 space-y-2">
 			{#each sortedStations.slice(0, 3) as station, i}
-				{@const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts())}
+				{@const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts(), station.code)}
 				{@const discountedPrice = Math.max(0, station.price - discount.totalDiscount)}
 				<button
 					onclick={() => handleNavigate(station)}

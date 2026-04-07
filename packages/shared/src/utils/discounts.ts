@@ -6,6 +6,7 @@ export interface DiscountOffer {
 	fuelTypeOverrides?: Record<string, number>;
 	fuelTypeExclusions?: string[];
 	maxLitres: number;
+	stationCodes?: string[];
 	description: string;
 	lastVerified: string;
 }
@@ -53,7 +54,19 @@ const DISCOUNT_OFFERS: DiscountOffer[] = [
 		category: 'supermarket',
 		amount: 4,
 		maxLitres: 100,
-		description: 'Participating stations vary by voucher (location-specific)',
+		stationCodes: [
+			'449',
+			'482',
+			'486',
+			'1822',
+			'1916',
+			'343',
+			'2311',
+			'1497',
+			'1508',
+			'18668',
+		],
+		description: 'Ritchies IGA loyalty card (participating stations only)',
 		lastVerified: '2026-04-07',
 	},
 	{
@@ -340,6 +353,17 @@ const BRAND_CONFIGS: BrandDiscountConfig[] = [
 		maxCategories: 2,
 	},
 	{
+		brands: ['Ampol'],
+		categories: [
+			{
+				id: 'supermarket',
+				name: 'Supermarket voucher',
+				discountIds: ['ritchies_iga_voucher'],
+			},
+		],
+		maxCategories: 1,
+	},
+	{
 		brands: ['EG Ampol', 'Caltex Woolworths'],
 		categories: [
 			{
@@ -443,6 +467,11 @@ const BRAND_CONFIGS: BrandDiscountConfig[] = [
 		brands: ['United', 'ASTRON'],
 		categories: [
 			{
+				id: 'supermarket',
+				name: 'Supermarket voucher',
+				discountIds: ['ritchies_iga_voucher'],
+			},
+			{
 				id: 'seniors',
 				name: 'Seniors discount',
 				discountIds: ['nsw_seniors'],
@@ -480,6 +509,7 @@ export function calculateDiscount(
 	brand: string,
 	fuelType: string,
 	selectedDiscountIds: string[],
+	stationCode?: string,
 ): DiscountResult {
 	const config = getDiscountConfig(brand);
 	if (!config || selectedDiscountIds.length === 0) {
@@ -499,6 +529,11 @@ export function calculateDiscount(
 			if (!offer) continue;
 
 			if (offer.fuelTypeExclusions?.includes(fuelType)) continue;
+
+			if (offer.stationCodes && stationCode) {
+				if (!offer.stationCodes.includes(stationCode)) continue;
+			}
+			if (offer.stationCodes && !stationCode) continue;
 
 			let amount = offer.amount;
 			if (offer.fuelTypeOverrides && fuelType in offer.fuelTypeOverrides) {

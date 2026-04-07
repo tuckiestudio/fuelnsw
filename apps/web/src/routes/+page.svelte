@@ -109,7 +109,7 @@
                 const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
                 const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
                 if (isHighlighted && getSelectedDiscounts().length > 0) {
-                    const discount = calculateDiscount(station.properties.brand, f, getSelectedDiscounts());
+                    const discount = calculateDiscount(station.properties.brand, f, getSelectedDiscounts(), station.properties.code);
                     if (discount.totalDiscount > 0) {
                         const discVal = val - discount.totalDiscount;
                         return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}"><span style="text-decoration:line-through;color:#94a3b8;font-weight:400;font-size:10px">${val.toFixed(1)}</span> ${discVal.toFixed(1)}</span></div>`;
@@ -214,7 +214,7 @@
 				const raw = parseFloat(String(s.properties[selectedFuelType] ?? ''));
 				if (isNaN(raw)) return NaN;
 				if (getSelectedDiscounts().length === 0) return raw;
-				const d = calculateDiscount(s.properties.brand, selectedFuelType, getSelectedDiscounts());
+				const d = calculateDiscount(s.properties.brand, selectedFuelType, getSelectedDiscounts(), s.properties.code);
 				return raw - d.totalDiscount;
 			})
 			.filter((p) => !isNaN(p));
@@ -306,7 +306,7 @@
 			if (isNaN(price)) continue;
 
 			const discount = getSelectedDiscounts().length > 0
-				? calculateDiscount(station.properties.brand, selectedFuelType, getSelectedDiscounts())
+				? calculateDiscount(station.properties.brand, selectedFuelType, getSelectedDiscounts(), station.properties.code)
 				: { totalDiscount: 0, appliedDiscounts: [] as { id: string; amount: number; name: string }[] };
 			const discountedPrice = price - discount.totalDiscount;
 			const displayPrice = discount.totalDiscount > 0 ? discountedPrice : price;

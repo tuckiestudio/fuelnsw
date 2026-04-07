@@ -262,7 +262,7 @@
 					{#each FUEL_OPTIONS as fuel}
 						{@const price = station.properties[fuel]}
 						{#if price && typeof price === 'string'}
-							{@const discount = calculateDiscount(station.properties.brand || '', fuel, getSelectedDiscounts())}
+							{@const discount = calculateDiscount(station.properties.brand || '', fuel, getSelectedDiscounts(), station.properties.code)}
 							{@const discountedPrice = Math.max(0, parseFloat(price) - discount.totalDiscount)}
 							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
 								<span class="text-sm">{fuel}</span>
@@ -289,7 +289,7 @@
 			{#if getSelectedDiscounts().length > 0}
 				{@const sampleFuel = FUEL_OPTIONS.find((f) => station.properties[f] && typeof station.properties[f] === 'string')}
 				{#if sampleFuel}
-					{@const sampleDiscount = calculateDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts())}
+					{@const sampleDiscount = calculateDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts(), station.properties.code)}
 					{#if sampleDiscount.appliedDiscounts.length > 0}
 						<div class="px-2.5 py-2 bg-green-50 border border-green-100 rounded-lg">
 							<div class="text-xs font-medium text-green-800 mb-1.5">Applied Discounts</div>
