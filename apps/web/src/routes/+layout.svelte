@@ -139,10 +139,10 @@
 					{#if isNative && !adsRemoved}
 						<button
 							onclick={() => (showPaywall = true)}
-							class="px-2 py-1.5 rounded-md text-xs font-medium text-green-600 hover:bg-green-50 transition-colors flex items-center gap-1"
+							class="p-2 rounded-md text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center"
+							aria-label="Remove Ads"
 						>
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 008.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
-							Remove Ads
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 008.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
 						</button>
 					{/if}
 				</div>
