@@ -9,7 +9,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { getRemoveAds } from '$lib/preferences';
-	import { showDiscountModal, discountCount } from '$lib/discount-state.svelte';
+	import { showDiscountModal, discountCount, openDiscountModal, closeDiscountModal } from '$lib/discount-state.svelte';
 	import PaywallModal from '$components/PaywallModal.svelte';
 	import DiscountModal from '$components/map/DiscountModal.svelte';
 
@@ -82,7 +82,7 @@
 						Summary
 					</a>
 					<button
-						onclick={() => (showDiscountModal = true)}
+						onclick={() => openDiscountModal()}
 						class="hidden sm:flex px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 items-center gap-1"
 					>
 						Discounts
@@ -91,7 +91,7 @@
 						{/if}
 					</button>
 					<button
-						onclick={() => (showDiscountModal = true)}
+						onclick={() => openDiscountModal()}
 						class="sm:hidden relative p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
 						aria-label="Fuel discounts"
 					>
@@ -136,5 +136,5 @@
 {/if}
 
 {#if showDiscountModal}
-	<DiscountModal onclose={() => (showDiscountModal = false)} />
+	<DiscountModal onclose={() => closeDiscountModal()} />
 {/if}
