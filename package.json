@@ -22,7 +22,6 @@
 		"import:history:xlsx": "tsx scripts/import-history.ts --xlsx-only"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.59.1",
 		"tsx": "^4.19.0"
 	},
 	"dependencies": {
