@@ -20,3 +20,11 @@ export function clearDiscounts() {
 	selectedDiscounts = [];
 	setDiscounts([]);
 }
+
+export function openDiscountModal() {
+	showDiscountModal = true;
+}
+
+export function closeDiscountModal() {
+	showDiscountModal = false;
+}

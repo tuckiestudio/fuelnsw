@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { FUEL_OPTIONS } from '@fuelnsw/shared/utils/fuel-types';
+	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
+	import { selectedDiscounts } from '$lib/discount-state.svelte';
 	import PriceChart from '$components/station/PriceChart.svelte';
 	import type { StationGeoJSON, OpeningHours } from '@fuelnsw/shared/api/types';
 	import { maybeShowInterstitial } from '$lib/ads';
@@ -260,9 +262,19 @@
 					{#each FUEL_OPTIONS as fuel}
 						{@const price = station.properties[fuel]}
 						{#if price && typeof price === 'string'}
+							{@const discount = calculateDiscount(station.properties.brand || '', fuel, selectedDiscounts)}
+							{@const discountedPrice = Math.max(0, parseFloat(price) - discount.totalDiscount)}
 							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
 								<span class="text-sm">{fuel}</span>
-								<span class="font-bold text-sm">{parseFloat(price).toFixed(1)} c/L</span>
+								<div class="flex items-center gap-1.5">
+									{#if discount.totalDiscount > 0}
+										<span class="text-xs text-gray-400 line-through">{parseFloat(price).toFixed(1)}</span>
+										<span class="font-bold text-sm text-green-700">{discountedPrice.toFixed(1)} c/L</span>
+										<span class="text-[10px] font-medium text-green-600 bg-green-50 px-1 py-0.5 rounded">-{discount.totalDiscount.toFixed(1)}</span>
+									{:else}
+										<span class="font-bold text-sm">{parseFloat(price).toFixed(1)} c/L</span>
+									{/if}
+								</div>
 							</div>
 						{:else}
 							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md opacity-50">

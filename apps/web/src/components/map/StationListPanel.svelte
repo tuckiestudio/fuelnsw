@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
+	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
+	import { selectedDiscounts } from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 	import { navigateTo } from '$lib/navigation';
 
@@ -50,6 +52,13 @@
 		return isNaN(price) ? Infinity : price;
 	}
 
+	function getDiscountedPrice(station: StationGeoJSON): number {
+		const raw = getPrice(station);
+		if (raw === Infinity) return Infinity;
+		const discount = calculateDiscount(station.properties.brand || '', fuelType, selectedDiscounts);
+		return Math.max(0, raw - discount.totalDiscount);
+	}
+
 	let sortedStations = $derived.by(() => {
 		const withPrice = stations.filter((s) => {
 			const raw = s.properties[fuelType];
@@ -57,7 +66,7 @@
 		});
 		const sorted = [...withPrice];
 		if (sortMode === 'price') {
-			sorted.sort((a, b) => getPrice(a) - getPrice(b));
+			sorted.sort((a, b) => getDiscountedPrice(a) - getDiscountedPrice(b));
 		} else {
 			sorted.sort((a, b) => getDistance(a) - getDistance(b));
 		}
@@ -122,8 +131,10 @@
 			<div class="divide-y divide-gray-100">
 				{#each sortedStations as station, i}
 					{@const price = getPrice(station)}
+					{@const discount = calculateDiscount(station.properties.brand || '', fuelType, selectedDiscounts)}
+					{@const discountedPrice = price === Infinity ? price : Math.max(0, price - discount.totalDiscount)}
 					{@const dist = getDistance(station)}
-					{@const color = getPriceColor(price, sortedStations.length > 1 ? Math.min(...sortedStations.map(getPrice)) : price, sortedStations.length > 1 ? Math.max(...sortedStations.map(getPrice)) : price)}
+					{@const color = getPriceColor(discountedPrice, sortedStations.length > 1 ? Math.min(...sortedStations.map(getDiscountedPrice)) : discountedPrice, sortedStations.length > 1 ? Math.max(...sortedStations.map(getDiscountedPrice)) : discountedPrice)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div class="flex items-center px-3 sm:px-4 py-2.5 transition-colors {hoveredStationCode === station.properties.code ? 'bg-gray-50' : 'hover:bg-gray-50'} active:bg-gray-100"
 					 onmouseenter={() => onhover?.(station)}
@@ -134,11 +145,14 @@
 							class="flex-1 flex items-center gap-3 min-w-0 text-left"
 						>
 							<div class="w-8 h-6 rounded flex items-center justify-center shrink-0 text-white font-bold text-[10px] leading-none" style="background:{color}">
-								{price.toFixed(1)}
+								{discountedPrice.toFixed(1)}
 							</div>
 							<div class="flex-1 min-w-0">
 								<div class="font-medium text-sm text-gray-900 truncate">
 									{station.properties.name}
+									{#if discount.totalDiscount > 0}
+										<span class="text-[10px] font-medium text-green-600 bg-green-50 px-1 py-0.5 rounded ml-1">-{discount.totalDiscount.toFixed(1)}</span>
+									{/if}
 								</div>
 								<div class="text-xs text-gray-500 truncate">
 									{station.properties.brand ?? ''} · {station.properties.suburb}

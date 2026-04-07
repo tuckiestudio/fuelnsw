@@ -2,6 +2,8 @@
 	import { navigateTo } from '$lib/navigation';
 	import { maybeShowInterstitial } from '$lib/ads';
 	import { getRemoveAds } from '$lib/preferences';
+	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
+	import { selectedDiscounts } from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 	import AdSlot from '$components/AdSlot.svelte';
 	import NavAppPicker from '$components/map/NavAppPicker.svelte';
@@ -66,6 +68,15 @@
 		: maxDistance <= 20 ? `within ${Math.ceil(maxDistance)}km`
 		: `within ${Math.round(maxDistance)}km`
 	);
+
+	function getDiscountedPrice(station: NearestStation): number {
+		const discount = calculateDiscount(station.brand, fuelType, selectedDiscounts);
+		return Math.max(0, station.price - discount.totalDiscount);
+	}
+
+	let sortedStations = $derived(
+		[...stations].sort((a, b) => getDiscountedPrice(a) - getDiscountedPrice(b))
+	);
 </script>
 
 <div class="absolute bottom-0 left-0 right-0 z-[1003]">
@@ -85,7 +96,9 @@
 			</button>
 		</div>
 		<div class="px-4 pb-4 space-y-2">
-			{#each stations.slice(0, 3) as station, i}
+			{#each sortedStations.slice(0, 3) as station, i}
+				{@const discount = calculateDiscount(station.brand, fuelType, selectedDiscounts)}
+				{@const discountedPrice = Math.max(0, station.price - discount.totalDiscount)}
 				<button
 					onclick={() => handleNavigate(station)}
 					class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left border border-gray-100"
@@ -114,8 +127,14 @@
 						</div>
 					</div>
 					<div class="text-right shrink-0">
-						<div class="font-bold text-green-700">{station.price.toFixed(1)}</div>
-						<div class="text-[10px] text-gray-400">c/L</div>
+						{#if discount.totalDiscount > 0}
+							<div class="font-bold text-green-700">{discountedPrice.toFixed(1)}</div>
+							<div class="text-[10px] text-gray-400 line-through">{station.price.toFixed(1)}</div>
+							<div class="text-[10px] font-medium text-green-600">c/L ·-{discount.totalDiscount.toFixed(1)}</div>
+						{:else}
+							<div class="font-bold text-green-700">{station.price.toFixed(1)}</div>
+							<div class="text-[10px] text-gray-400">c/L</div>
+						{/if}
 					</div>
 				</button>
 			{/each}
