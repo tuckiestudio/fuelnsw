@@ -286,6 +286,30 @@
 				</div>
 			</div>
 
+			{#if getSelectedDiscounts().length > 0}
+				{@const sampleFuel = FUEL_OPTIONS.find((f) => station.properties[f] && typeof station.properties[f] === 'string')}
+				{#if sampleFuel}
+					{@const sampleDiscount = calculateDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts())}
+					{#if sampleDiscount.appliedDiscounts.length > 0}
+						<div class="px-2.5 py-2 bg-green-50 border border-green-100 rounded-lg">
+							<div class="text-xs font-medium text-green-800 mb-1.5">Applied Discounts</div>
+							<div class="space-y-1">
+								{#each sampleDiscount.appliedDiscounts as d}
+									<div class="flex justify-between items-center text-xs">
+										<span class="text-green-700">{d.name}</span>
+										<span class="font-semibold text-green-800">-{d.amount}c/L</span>
+									</div>
+								{/each}
+								<div class="border-t border-green-200 pt-1 mt-1 flex justify-between items-center text-xs font-semibold">
+									<span class="text-green-800">Total saving</span>
+									<span class="text-green-900">-{sampleDiscount.totalDiscount}c/L</span>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{/if}
+			{/if}
+
 			<hr class="border-gray-200">
 
 			<div>
