@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getPriceColor, FUEL_COLORS } from '@fuelnsw/shared/utils/fuel-types';
+	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
 	import { Capacitor } from '@capacitor/core';
 	import SearchBar from '$components/map/SearchBar.svelte';
@@ -22,6 +23,7 @@
 		getOpenOnly,
 		setOpenOnly
 	} from '$lib/preferences';
+	import { selectedDiscounts } from '$lib/discount-state.svelte';
 
 
 	let mapContainer: HTMLDivElement;
@@ -97,16 +99,24 @@
 		if (!station) return;
 		const knownFuels = ['E10', 'Unleaded', 'P95', 'P98', 'Diesel', 'PDL', 'LPG', 'E85', 'B20'];
 		const stationFuels = knownFuels.filter(f => station.properties[f] != null);
+
 		const fuelRows = stationFuels
 			.map(f => {
 				const val = parseFloat(String(station.properties[f]));
 				if (isNaN(val)) return '';
 				const color = FUEL_COLORS[f] ?? '#94a3b8';
-				const isHighlighted = f === selectedFuelType;
-				const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
-				const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
-				return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}">${val.toFixed(1)}</span></div>`;
-			})
+                const isHighlighted = f === selectedFuelType;
+                const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
+                const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
+                if (isHighlighted && selectedDiscounts.length > 0) {
+                    const discount = calculateDiscount(station.properties.brand, f, selectedDiscounts);
+                    if (discount.totalDiscount > 0) {
+                        const discVal = val - discount.totalDiscount;
+                        return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}"><span style="text-decoration:line-through;color:#94a3b8;font-weight:400;font-size:10px">${val.toFixed(1)}</span> ${discVal.toFixed(1)}</span></div>`;
+                    }
+                }
+                return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}">${val.toFixed(1)}</span></div>`;
+            })
 			.filter(Boolean)
 			.join('');
 		const html = `<div class="station-tooltip">` +
@@ -200,7 +210,13 @@
 	function updatePriceRange() {
 		const source = searchQuery.trim() ? filteredStations : stations;
 		const prices = source
-			.map((s) => parseFloat(String(s.properties[selectedFuelType] ?? '')))
+			.map((s) => {
+				const raw = parseFloat(String(s.properties[selectedFuelType] ?? ''));
+				if (isNaN(raw)) return NaN;
+				if (selectedDiscounts.length === 0) return raw;
+				const d = calculateDiscount(s.properties.brand, selectedFuelType, selectedDiscounts);
+				return raw - d.totalDiscount;
+			})
 			.filter((p) => !isNaN(p));
 		priceRange = {
 			min: prices.length ? Math.min(...prices) : 0,
@@ -289,12 +305,24 @@
 			const price = parseFloat(String(rawPrice ?? ''));
 			if (isNaN(price)) continue;
 
-			const color = getPriceColor(price, priceRange.min, priceRange.max);
+			const discount = selectedDiscounts.length > 0
+				? calculateDiscount(station.properties.brand, selectedFuelType, selectedDiscounts)
+				: { totalDiscount: 0, appliedDiscounts: [] as { id: string; amount: number; name: string }[] };
+			const discountedPrice = price - discount.totalDiscount;
+			const displayPrice = discount.totalDiscount > 0 ? discountedPrice : price;
+			const color = getPriceColor(displayPrice, priceRange.min, priceRange.max);
 			const lat = station.geometry.coordinates[1];
 			const lng = station.geometry.coordinates[0];
 
+			let markerHtml: string;
+			if (discount.totalDiscount > 0) {
+				markerHtml = `<div class="price-label price-label-discounted" style="background:${color}"><span>${escapeHtml(discountedPrice.toFixed(1))}</span><span class="discount-badge">-${discount.totalDiscount}</span></div>`;
+			} else {
+				markerHtml = `<div class="price-label" style="background:${color}"><span>${escapeHtml(price.toFixed(1))}</span></div>`;
+			}
+
 			const icon = L.divIcon({
-				html: `<div class="price-label" style="background:${color}"><span>${escapeHtml(price.toFixed(1))}</span></div>`,
+				html: markerHtml,
 				iconSize: null,
 				iconAnchor: [0, 0],
 				className: ''
@@ -889,6 +917,31 @@
 		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 		z-index: 10000 !important;
 		position: relative;
+	}
+
+	:global(.price-label-discounted) {
+		position: relative;
+		padding-right: 18px;
+	}
+	:global(.discount-badge) {
+		position: absolute;
+		top: -5px;
+		right: -6px;
+		background: #16a34a;
+		color: #fff;
+		font-size: 8px;
+		font-weight: 700;
+		padding: 1px 3px;
+		border-radius: 6px;
+		line-height: 1.2;
+		white-space: nowrap;
+		border: 1px solid rgba(255, 255, 255, 0.6);
+	}
+	:global(.price-label-strikethrough) {
+		text-decoration: line-through;
+		color: #94a3b8;
+		font-weight: 400;
+		font-size: 10px;
 	}
 
 	:global(.station-tooltip-container) {
