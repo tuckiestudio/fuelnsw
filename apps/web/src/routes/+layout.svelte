@@ -54,8 +54,8 @@
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 flex flex-col">
-	<nav class="bg-white shadow-sm border-b border-gray-200 z-50 relative">
+<div class="h-dvh bg-gray-50 flex flex-col">
+	<nav class="bg-white shadow-sm border-b border-gray-200 z-50 relative shrink-0">
 		<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-14">
 				<a href="/" class="flex items-center gap-2">
@@ -116,11 +116,11 @@
 		</div>
 	</nav>
 
-	<main class="flex-1">
+	<main class="flex-1 min-h-0 overflow-auto">
 		{@render children()}
 	</main>
 
-	<footer class="bg-white border-t border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
+	<footer class="bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 shrink-0">
 		<div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
 			<span>© {new Date().getFullYear()} Fuel Scout NSW</span>
 			<span>Fuel price data sourced from the <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Government Fuel Check API</a></span>

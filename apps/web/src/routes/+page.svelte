@@ -713,7 +713,7 @@
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<div class="relative flex h-[calc(100vh-3.5rem)] overflow-hidden">
+<div class="relative flex h-full overflow-hidden">
 	<!-- Desktop: search + fuel type at top -->
 	<div
 		class="hidden sm:flex absolute top-3 left-1/2 -translate-x-1/2 z-[1000] items-start gap-2"

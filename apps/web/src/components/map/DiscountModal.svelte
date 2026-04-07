@@ -110,6 +110,7 @@
 				class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
 			>Done</button>
 			<p class="text-[10px] text-gray-400 text-center">Discount data last verified: {verifiedLabel}</p>
+		<p class="text-[10px] text-gray-400 text-center">Discount information sourced from <a href="https://www.ozbargain.com.au/wiki/fuel_discounts" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">OzBargain Fuel Discounts Wiki</a></p>
 		</div>
 	</div>
 </div>
