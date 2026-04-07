@@ -791,9 +791,9 @@
 		</div>
 	{/if}
 
-	<!-- Mobile: legend at bottom-left, in-line with locate button -->
+	<!-- Mobile: legend at bottom-left, hugging map bottom -->
 	{#if !hideMobileControls}
-		<div class="sm:hidden absolute bottom-40 left-3 z-[1000]">
+		<div class="sm:hidden absolute bottom-2 left-3 z-[1000]">
 			<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 		</div>
 	{/if}

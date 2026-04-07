@@ -154,10 +154,9 @@
 		{@render children()}
 	</main>
 
-	<footer class="bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 shrink-0">
-		<div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
-			<span>© {new Date().getFullYear()} Fuel Scout NSW</span>
-			<span>Fuel price data sourced from the <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Government Fuel Check API</a></span>
+	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0">
+		<div class="max-w-screen-2xl mx-auto flex items-center justify-center text-[10px] sm:text-xs text-gray-400">
+			<span>© {new Date().getFullYear()} Fuel Scout NSW · Data from <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Fuel Check API</a></span>
 		</div>
 	</footer>
 </div>
