@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">FuelNSW</string>
-    <string name="title_activity_main">FuelNSW</string>
+    <string name="app_name">Fuel Scout NSW</string>
+    <string name="title_activity_main">Fuel Scout NSW</string>
     <string name="package_name">com.fuelnsw.app</string>
     <string name="custom_url_scheme">com.fuelnsw.app</string>
 </resources>

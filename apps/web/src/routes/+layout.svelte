@@ -92,7 +92,7 @@
 					<div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M3 22V6l4-2v18H3zm6 0V8l4 2v12H9zm6 0V4l4 4v14h-4z"/></svg>
 					</div>
-					<span class="font-bold text-lg text-gray-900">Fuel Scout NSW</span>
+					<span class="font-bold text-sm sm:text-lg text-gray-900 whitespace-nowrap">Fuel Scout NSW</span>
 				</a>
 				<div class="flex items-center gap-1">
 					<a
@@ -154,7 +154,7 @@
 		{@render children()}
 	</main>
 
-	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0">
+	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0 {isNative && !adsRemoved ? 'pb-16' : ''}">
 		<div class="max-w-screen-2xl mx-auto flex items-center justify-center text-[10px] sm:text-xs text-gray-400">
 			<span>© {new Date().getFullYear()} Fuel Scout NSW · Data from <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Fuel Check API</a></span>
 		</div>

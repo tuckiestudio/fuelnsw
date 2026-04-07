@@ -2,11 +2,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
 	appId: 'com.fuelnsw.app',
-	appName: 'FuelNSW',
+	appName: 'Fuel Scout NSW',
 	webDir: 'apps/web/build',
 	server: {
-		url: 'http://150.107.73.209',
-		cleartext: true
+		url: 'https://fuelscout.com.au'
 	},
 	plugins: {
 		SplashScreen: {
