@@ -4,10 +4,10 @@
 		getLastVerifiedDate,
 	} from '@fuelnsw/shared/utils/discounts';
 	import {
-		selectedDiscounts,
+		getSelectedDiscounts,
 		toggleDiscount,
 		clearDiscounts,
-		discountCount,
+		getDiscountCount,
 	} from '$lib/discount-state.svelte';
 
 	let {
@@ -43,12 +43,12 @@
 		<div class="flex items-center justify-between px-4 py-3 border-b shrink-0">
 			<div class="flex items-center gap-2">
 				<h2 class="text-lg font-bold text-gray-900">Fuel Discounts</h2>
-				{#if discountCount > 0}
-					<span class="bg-green-600 text-white text-xs font-semibold rounded-full px-2 py-0.5">{discountCount}</span>
+				{#if getDiscountCount() > 0}
+					<span class="bg-green-600 text-white text-xs font-semibold rounded-full px-2 py-0.5">{getDiscountCount()}</span>
 				{/if}
 			</div>
 			<div class="flex items-center gap-2">
-				{#if discountCount > 0}
+				{#if getDiscountCount() > 0}
 					<button
 						onclick={clearDiscounts}
 						class="text-xs text-red-500 hover:text-red-700 font-medium"
@@ -69,7 +69,7 @@
 					<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{group.name}</h3>
 					<div class="space-y-1">
 						{#each group.discounts as discount}
-							{@const isActive = selectedDiscounts.includes(discount.id)}
+							{@const isActive = getSelectedDiscounts().includes(discount.id)}
 							<!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
 							<button
 								class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left {isActive ? 'bg-green-50 border border-green-200' : 'hover:bg-gray-50 border border-transparent'}"

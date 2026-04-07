@@ -3,7 +3,7 @@
 	import { maybeShowInterstitial } from '$lib/ads';
 	import { getRemoveAds } from '$lib/preferences';
 	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
-	import { selectedDiscounts } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts } from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 	import AdSlot from '$components/AdSlot.svelte';
 	import NavAppPicker from '$components/map/NavAppPicker.svelte';
@@ -70,7 +70,7 @@
 	);
 
 	function getDiscountedPrice(station: NearestStation): number {
-		const discount = calculateDiscount(station.brand, fuelType, selectedDiscounts);
+		const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts());
 		return Math.max(0, station.price - discount.totalDiscount);
 	}
 
@@ -97,7 +97,7 @@
 		</div>
 		<div class="px-4 pb-4 space-y-2">
 			{#each sortedStations.slice(0, 3) as station, i}
-				{@const discount = calculateDiscount(station.brand, fuelType, selectedDiscounts)}
+				{@const discount = calculateDiscount(station.brand, fuelType, getSelectedDiscounts())}
 				{@const discountedPrice = Math.max(0, station.price - discount.totalDiscount)}
 				<button
 					onclick={() => handleNavigate(station)}

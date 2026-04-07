@@ -9,7 +9,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { getRemoveAds } from '$lib/preferences';
-	import { showDiscountModal, discountCount, openDiscountModal, closeDiscountModal } from '$lib/discount-state.svelte';
+	import { getShowDiscountModal, getDiscountCount, openDiscountModal, closeDiscountModal } from '$lib/discount-state.svelte';
 	import PaywallModal from '$components/PaywallModal.svelte';
 	import DiscountModal from '$components/map/DiscountModal.svelte';
 
@@ -86,20 +86,20 @@
 						class="hidden sm:flex px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 items-center gap-1"
 					>
 						Discounts
-						{#if discountCount > 0}
-							<span class="bg-green-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{discountCount}</span>
-						{/if}
-					</button>
-					<button
-						onclick={() => openDiscountModal()}
-						class="sm:hidden relative p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-						aria-label="Fuel discounts"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-							<path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-						</svg>
-						{#if discountCount > 0}
-							<span class="absolute -top-0.5 -right-0.5 bg-green-600 text-white text-[8px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{discountCount}</span>
+					{#if getDiscountCount() > 0}
+						<span class="bg-green-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{getDiscountCount()}</span>
+					{/if}
+				</button>
+				<button
+					onclick={() => openDiscountModal()}
+					class="sm:hidden relative p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+					aria-label="Fuel discounts"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+					</svg>
+					{#if getDiscountCount() > 0}
+						<span class="absolute -top-0.5 -right-0.5 bg-green-600 text-white text-[8px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{getDiscountCount()}</span>
 						{/if}
 					</button>
 					{#if isNative && !adsRemoved}
@@ -135,6 +135,6 @@
 	}} />
 {/if}
 
-{#if showDiscountModal}
+{#if getShowDiscountModal()}
 	<DiscountModal onclose={() => closeDiscountModal()} />
 {/if}

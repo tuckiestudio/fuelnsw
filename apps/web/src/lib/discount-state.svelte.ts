@@ -1,30 +1,43 @@
 import { getDiscounts, setDiscounts } from './preferences';
 
-let selectedDiscounts = $state<string[]>(getDiscounts());
-let showDiscountModal = $state(false);
-let discountCount = $derived(selectedDiscounts.length);
+let state = $state({
+	selectedDiscounts: getDiscounts() as string[],
+	showDiscountModal: false
+});
 
-export { selectedDiscounts, showDiscountModal, discountCount };
+let discountCount = $derived(state.selectedDiscounts.length);
+
+export function getSelectedDiscounts() {
+	return state.selectedDiscounts;
+}
+
+export function getShowDiscountModal() {
+	return state.showDiscountModal;
+}
+
+export function getDiscountCount() {
+	return discountCount;
+}
 
 export function toggleDiscount(id: string) {
-	const idx = selectedDiscounts.indexOf(id);
+	const idx = state.selectedDiscounts.indexOf(id);
 	if (idx >= 0) {
-		selectedDiscounts = selectedDiscounts.filter((d) => d !== id);
+		state.selectedDiscounts = state.selectedDiscounts.filter((d) => d !== id);
 	} else {
-		selectedDiscounts = [...selectedDiscounts, id];
+		state.selectedDiscounts = [...state.selectedDiscounts, id];
 	}
-	setDiscounts(selectedDiscounts);
+	setDiscounts(state.selectedDiscounts);
 }
 
 export function clearDiscounts() {
-	selectedDiscounts = [];
+	state.selectedDiscounts = [];
 	setDiscounts([]);
 }
 
 export function openDiscountModal() {
-	showDiscountModal = true;
+	state.showDiscountModal = true;
 }
 
 export function closeDiscountModal() {
-	showDiscountModal = false;
+	state.showDiscountModal = false;
 }

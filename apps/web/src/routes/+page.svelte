@@ -23,7 +23,7 @@
 		getOpenOnly,
 		setOpenOnly
 	} from '$lib/preferences';
-	import { selectedDiscounts } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts } from '$lib/discount-state.svelte';
 
 
 	let mapContainer: HTMLDivElement;
@@ -108,8 +108,8 @@
                 const isHighlighted = f === selectedFuelType;
                 const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
                 const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
-                if (isHighlighted && selectedDiscounts.length > 0) {
-                    const discount = calculateDiscount(station.properties.brand, f, selectedDiscounts);
+                if (isHighlighted && getSelectedDiscounts().length > 0) {
+                    const discount = calculateDiscount(station.properties.brand, f, getSelectedDiscounts());
                     if (discount.totalDiscount > 0) {
                         const discVal = val - discount.totalDiscount;
                         return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}"><span style="text-decoration:line-through;color:#94a3b8;font-weight:400;font-size:10px">${val.toFixed(1)}</span> ${discVal.toFixed(1)}</span></div>`;
@@ -213,8 +213,8 @@
 			.map((s) => {
 				const raw = parseFloat(String(s.properties[selectedFuelType] ?? ''));
 				if (isNaN(raw)) return NaN;
-				if (selectedDiscounts.length === 0) return raw;
-				const d = calculateDiscount(s.properties.brand, selectedFuelType, selectedDiscounts);
+				if (getSelectedDiscounts().length === 0) return raw;
+				const d = calculateDiscount(s.properties.brand, selectedFuelType, getSelectedDiscounts());
 				return raw - d.totalDiscount;
 			})
 			.filter((p) => !isNaN(p));
@@ -305,8 +305,8 @@
 			const price = parseFloat(String(rawPrice ?? ''));
 			if (isNaN(price)) continue;
 
-			const discount = selectedDiscounts.length > 0
-				? calculateDiscount(station.properties.brand, selectedFuelType, selectedDiscounts)
+			const discount = getSelectedDiscounts().length > 0
+				? calculateDiscount(station.properties.brand, selectedFuelType, getSelectedDiscounts())
 				: { totalDiscount: 0, appliedDiscounts: [] as { id: string; amount: number; name: string }[] };
 			const discountedPrice = price - discount.totalDiscount;
 			const displayPrice = discount.totalDiscount > 0 ? discountedPrice : price;
