@@ -15,6 +15,29 @@
 
 	const isNative = Capacitor.isNativePlatform();
 
+	const jsonLd = JSON.stringify({
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'WebSite',
+				name: 'Fuel Scout NSW',
+				url: 'https://fuelscout.com.au',
+				description: 'Track real-time NSW fuel prices. Compare E10, Unleaded, Premium, Diesel prices across all NSW service stations.',
+				potentialAction: {
+					'@type': 'SearchAction',
+					target: 'https://fuelscout.com.au/?fuel={search_term_string}',
+					'query-input': 'required name=search_term_string'
+				}
+			},
+			{
+				'@type': 'Organization',
+				name: 'Fuel Scout NSW',
+				url: 'https://fuelscout.com.au',
+				logo: 'https://fuelscout.com.au/icons/icon.svg'
+			}
+		]
+	});
+
 	let showPaywall = $state(false);
 	let adsRemoved = $state(isNative ? getRemoveAds() : false);
 
@@ -48,10 +71,17 @@
 	<link rel="icon" href={favicon} />
 	<title>Fuel Scout NSW — Fuel Price Tracker</title>
 	<meta name="description" content="Track real-time NSW fuel prices. Compare E10, Unleaded, Premium, Diesel prices across all NSW service stations with live maps and historical charts." />
+	<link rel="canonical" href="https://fuelscout.com.au{$page.url.pathname}" />
 	<meta property="og:title" content="Fuel Scout NSW — Fuel Price Tracker" />
 	<meta property="og:description" content="Track real-time NSW fuel prices with live maps, historical charts, and availability monitoring." />
 	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://fuelscout.com.au{$page.url.pathname}" />
+	<meta property="og:site_name" content="Fuel Scout NSW" />
+	<meta property="og:locale" content="en_AU" />
 	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="Fuel Scout NSW — Fuel Price Tracker" />
+	<meta name="twitter:description" content="Track real-time NSW fuel prices with live maps, historical charts, and availability monitoring." />
+	{@html `<script type="application/ld+json">${jsonLd}</script>`}
 </svelte:head>
 
 <div class="h-dvh bg-gray-50 flex flex-col">
