@@ -38,6 +38,16 @@ export function openDiscountModal() {
 	state.showDiscountModal = true;
 }
 
+let onCloseCallbacks: (() => void)[] = [];
+
+export function onDiscountModalClose(callback: () => void) {
+	onCloseCallbacks.push(callback);
+	return () => {
+		onCloseCallbacks = onCloseCallbacks.filter((cb) => cb !== callback);
+	};
+}
+
 export function closeDiscountModal() {
 	state.showDiscountModal = false;
+	for (const cb of onCloseCallbacks) cb();
 }

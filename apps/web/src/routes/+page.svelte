@@ -23,7 +23,7 @@
 		getOpenOnly,
 		setOpenOnly
 	} from '$lib/preferences';
-	import { getSelectedDiscounts } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts, onDiscountModalClose } from '$lib/discount-state.svelte';
 
 
 	let mapContainer: HTMLDivElement;
@@ -683,6 +683,11 @@
 		};
 		window.addEventListener('resize', onResize);
 
+		const offClose = onDiscountModalClose(() => {
+			updatePriceRange();
+			renderMarkers();
+		});
+
 		(async () => {
 			try {
 				loadLocations();
@@ -694,7 +699,10 @@
 			}
 		})();
 
-		return () => window.removeEventListener('resize', onResize);
+		return () => {
+			window.removeEventListener('resize', onResize);
+			offClose();
+		};
 	});
 </script>
 
