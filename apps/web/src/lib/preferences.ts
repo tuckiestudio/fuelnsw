@@ -5,7 +5,8 @@ const KEYS = {
 	onboarded: 'fuelscoutnsw_onboarded',
 	removeAds: 'fuelscoutnsw_removeAds',
 	openOnly: 'fuelscoutnsw_openOnly',
-	navApp: 'fuelscoutnsw_navApp'
+	navApp: 'fuelscoutnsw_navApp',
+	discounts: 'fuelscoutnsw_discounts'
 } as const;
 
 function get<T>(key: string, fallback: T): T {
@@ -77,4 +78,12 @@ export function getNavApp(): NavApp | null {
 
 export function setNavApp(value: NavApp): void {
 	set(KEYS.navApp, value);
+}
+
+export function getDiscounts(): string[] {
+	return get(KEYS.discounts, []);
+}
+
+export function setDiscounts(ids: string[]): void {
+	set(KEYS.discounts, ids);
 }
