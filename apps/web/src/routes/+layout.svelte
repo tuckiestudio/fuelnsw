@@ -85,7 +85,7 @@
 </svelte:head>
 
 <div class="h-dvh bg-gray-50 flex flex-col">
-	<nav class="bg-white shadow-sm border-b border-gray-200 z-50 relative shrink-0">
+	<nav class="bg-white shadow-sm border-b border-gray-200 z-50 relative shrink-0" style:padding-top={isNative ? 'env(safe-area-inset-top)' : undefined}>
 		<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-14">
 				<a href="/" class="flex items-center gap-2">
@@ -154,7 +154,7 @@
 		{@render children()}
 	</main>
 
-	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0 {isNative && !adsRemoved ? 'pb-16' : ''}">
+	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0 {isNative && !adsRemoved ? 'pb-16' : ''}" style:padding-bottom={isNative ? 'max(env(safe-area-inset-bottom), 0.25rem)' : undefined}>
 		<div class="max-w-screen-2xl mx-auto flex items-center justify-center text-[10px] sm:text-xs text-gray-400">
 			<span>© {new Date().getFullYear()} Fuel Scout NSW · Data from <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Fuel Check API</a></span>
 		</div>
