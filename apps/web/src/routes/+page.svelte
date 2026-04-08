@@ -24,6 +24,7 @@
 		setOpenOnly
 	} from '$lib/preferences';
 	import { getSelectedDiscounts, onDiscountModalClose } from '$lib/discount-state.svelte';
+	import { getRemoveAds } from '$lib/preferences';
 
 
 	let mapContainer: HTMLDivElement;
@@ -55,6 +56,7 @@
 	let isMobile = $state(true);
 	let openOnly = $state(getOpenOnly());
 	let showStationList = $state(false);
+	const nativeAdOffset = Capacitor.isNativePlatform() && !getRemoveAds();
 
 	function escapeHtml(str: string): string {
 		return str
@@ -241,6 +243,12 @@
 		}).addTo(map);
 
 		L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+		if (nativeAdOffset) {
+			const style = document.createElement('style');
+			style.textContent = '.leaflet-bottom.leaflet-right { bottom: 80px !important; }';
+			mapContainer.appendChild(style);
+		}
 
 		clusterLayer = L.markerClusterGroup({
 			maxClusterRadius: 50,
@@ -793,7 +801,7 @@
 
 	<!-- Mobile: legend at bottom-left, hugging map bottom -->
 	{#if !hideMobileControls}
-		<div class="sm:hidden absolute bottom-2 left-3 z-[1000]">
+		<div class="sm:hidden absolute bottom-2 left-3 z-[1000]" style:bottom={nativeAdOffset ? '90px' : undefined}>
 			<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 		</div>
 	{/if}
