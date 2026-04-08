@@ -246,7 +246,7 @@
 
 		if (nativeAdOffset) {
 			const style = document.createElement('style');
-			style.textContent = '.leaflet-bottom.leaflet-right { bottom: 80px !important; }';
+			style.textContent = '.leaflet-bottom.leaflet-right { bottom: 56px !important; }';
 			mapContainer.appendChild(style);
 		}
 
@@ -801,7 +801,7 @@
 
 	<!-- Mobile: legend at bottom-left, hugging map bottom -->
 	{#if !hideMobileControls}
-		<div class="sm:hidden absolute bottom-2 left-3 z-[1000]" style:bottom={nativeAdOffset ? '90px' : undefined}>
+		<div class="sm:hidden absolute bottom-2 left-3 z-[1000]" style:bottom={nativeAdOffset ? '64px' : undefined}>
 			<Legend fuelType={selectedFuelType} min={priceRange.min} max={priceRange.max} />
 		</div>
 	{/if}
@@ -814,7 +814,7 @@
 	{/if}
 
 	{#if !hideMobileControls}
-		<LocateButton onclick={() => locateMe()} />
+		<LocateButton onclick={() => locateMe()} adOffset={nativeAdOffset} />
 	{/if}
 
 	{#if !hideMobileControls && !showSuggestions}
