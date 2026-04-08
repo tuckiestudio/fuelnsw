@@ -156,7 +156,7 @@
 
 	<footer class="bg-white border-t border-gray-200 py-1 px-4 sm:px-6 lg:px-8 shrink-0 {isNative && !adsRemoved ? 'pb-16' : ''}" style:padding-bottom={isNative ? 'max(env(safe-area-inset-bottom), 0.25rem)' : undefined}>
 		<div class="max-w-screen-2xl mx-auto flex items-center justify-center text-[10px] sm:text-xs text-gray-400">
-			<span>© {new Date().getFullYear()} Fuel Scout NSW · Data from <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Fuel Check API</a></span>
+			<span>© {new Date().getFullYear()} Fuel Scout NSW · <a href="/privacy" class="underline hover:text-gray-600 transition-colors">Privacy</a> · Data from <a href="https://api.nsw.gov.au/" target="_blank" rel="noopener noreferrer" class="underline hover:text-gray-600 transition-colors">NSW Fuel Check API</a></span>
 		</div>
 	</footer>
 </div>
