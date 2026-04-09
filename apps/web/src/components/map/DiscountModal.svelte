@@ -9,12 +9,15 @@
 		clearDiscounts,
 		getDiscountCount,
 	} from '$lib/discount-state.svelte';
+	import { Capacitor } from '@capacitor/core';
 
 	let {
 		onclose,
 	}: {
 		onclose?: () => void;
 	} = $props();
+
+	const isNative = Capacitor.isNativePlatform();
 
 	const groups = getCategoryGroups();
 	const lastVerified = getLastVerifiedDate();
@@ -38,7 +41,7 @@
 <div class="fixed inset-0 z-[2001] flex items-end sm:items-center justify-center">
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
 	<div class="absolute inset-0 bg-black/50" onclick={onclose} role="button" tabindex="-1" aria-label="Close"></div>
-	<div class="relative bg-white w-full sm:max-w-lg sm:rounded-2xl shadow-2xl sm:max-h-[85vh] max-h-[90vh] flex flex-col z-10 sm:rounded-b-2xl rounded-t-2xl">
+	<div class="relative bg-white w-full sm:max-w-lg sm:rounded-2xl shadow-2xl sm:max-h-[85vh] max-h-[80vh] flex flex-col z-10 sm:rounded-b-2xl rounded-t-2xl" style:margin-top={isNative ? 'env(safe-area-inset-top)' : undefined}>
 		<!-- Header -->
 		<div class="flex items-center justify-between px-4 py-3 border-b shrink-0">
 			<div class="flex items-center gap-2">
