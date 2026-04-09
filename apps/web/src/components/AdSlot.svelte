@@ -15,6 +15,8 @@
 	} = $props();
 
 	let showAd = $state(false);
+	let adLoaded = $state(false);
+	let containerEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
 		if (dev || Capacitor.isNativePlatform()) return;
@@ -24,6 +26,21 @@
 				const w = window as any;
 				(w.adsbygoogle = w.adsbygoogle || []).push({});
 			} catch {}
+
+			if (containerEl) {
+				const ins = containerEl.querySelector('ins.adsbygoogle');
+				if (ins) {
+					const observer = new ResizeObserver((entries) => {
+						for (const entry of entries) {
+							if (entry.contentRect.height > 0) {
+								adLoaded = true;
+								observer.disconnect();
+							}
+						}
+					});
+					observer.observe(ins);
+				}
+			}
 		});
 	});
 </script>
@@ -36,7 +53,13 @@
 			</div>
 		</div>
 	{:else if showAd}
-		<div class={className} style="height:90px;overflow:hidden;pointer-events:none">
+		<div
+			bind:this={containerEl}
+			class={className}
+			class:overflow-hidden={!adLoaded}
+			class:pointer-events-none={!adLoaded}
+			style={adLoaded ? 'overflow:hidden' : 'height:0;overflow:hidden'}
+		>
 			<ins
 				class="adsbygoogle"
 				style="display:block;width:100%;height:90px"
