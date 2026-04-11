@@ -607,6 +607,37 @@ export function getCategoryGroups(): {
 		}));
 }
 
+export function calculateGiftCardDiscount(priceCpl: number, percent: number): number {
+	if (percent <= 0 || priceCpl <= 0) return 0;
+	return Math.round((priceCpl * percent) / 100);
+}
+
+export function calculateTotalDiscount(
+	brand: string,
+	fuelType: string,
+	selectedDiscountIds: string[],
+	stationCode?: string,
+	priceCpl?: number,
+	giftCardPercent?: number,
+): DiscountResult {
+	const result = calculateDiscount(brand, fuelType, selectedDiscountIds, stationCode);
+
+	if (giftCardPercent && giftCardPercent > 0 && priceCpl && priceCpl > 0) {
+		const effectivePrice = priceCpl - result.totalDiscount;
+		const gcAmount = calculateGiftCardDiscount(effectivePrice, giftCardPercent);
+		if (gcAmount > 0) {
+			result.totalDiscount += gcAmount;
+			result.appliedDiscounts.push({
+				id: 'gift_card',
+				amount: gcAmount,
+				name: `Gift Card (${giftCardPercent}%)`,
+			});
+		}
+	}
+
+	return result;
+}
+
 export function getLastVerifiedDate(): string {
 	let oldest = DISCOUNT_OFFERS[0].lastVerified;
 	for (const offer of DISCOUNT_OFFERS) {

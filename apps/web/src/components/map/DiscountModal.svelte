@@ -8,6 +8,10 @@
 		toggleDiscount,
 		clearDiscounts,
 		getDiscountCount,
+		getGiftCardEnabledState,
+		getGiftCardPercentState,
+		toggleGiftCard,
+		updateGiftCardPercent,
 	} from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 
@@ -66,6 +70,58 @@
 		<!-- Scrollable content -->
 		<div class="overflow-y-auto flex-1 px-4 py-3 space-y-5">
 			<p class="text-sm text-gray-500">Select the discount programs you have access to. Discounted prices will be shown across the map and station details.</p>
+
+			<div>
+				<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Gift Card Discount</h3>
+				<div class="space-y-2">
+					<!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+					<button
+						class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left {getGiftCardEnabledState() ? 'bg-green-50 border border-green-200' : 'hover:bg-gray-50 border border-transparent'}"
+						onclick={() => toggleGiftCard(!getGiftCardEnabledState())}
+						role="switch"
+						aria-checked={getGiftCardEnabledState()}
+						tabindex="0"
+					>
+						<div class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors {getGiftCardEnabledState() ? 'bg-green-600 border-green-600' : 'border-gray-300'}">
+							{#if getGiftCardEnabledState()}
+								<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+							{/if}
+						</div>
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2">
+								<span class="text-sm font-medium text-gray-900 truncate">Discount Gift Card</span>
+								<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">All stations</span>
+							</div>
+							<p class="text-xs text-gray-500 mt-0.5">If you bought a discounted gift card (e.g. 5% off), enter the percentage discount here.</p>
+						</div>
+					</button>
+					{#if getGiftCardEnabledState()}
+						<div class="ml-8 flex items-center gap-3">
+							<button
+								onclick={() => updateGiftCardPercent(getGiftCardPercentState() - 1)}
+								class="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 {getGiftCardPercentState() <= 1 ? 'opacity-40 pointer-events-none' : ''}"
+								aria-label="Decrease percentage"
+							>
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+							</button>
+							<div class="flex items-baseline gap-1">
+								<span class="text-2xl font-bold text-gray-900 tabular-nums">{getGiftCardPercentState()}</span>
+								<span class="text-sm font-medium text-gray-500">%</span>
+							</div>
+							<button
+								onclick={() => updateGiftCardPercent(getGiftCardPercentState() + 1)}
+								class="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 {getGiftCardPercentState() >= 15 ? 'opacity-40 pointer-events-none' : ''}"
+								aria-label="Increase percentage"
+							>
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+							</button>
+						</div>
+						<div class="ml-8 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+							<p class="text-xs text-amber-800"><span class="font-semibold">Applies to all stations.</span> Check that your gift card is accepted at the station before purchasing fuel. Percentage is applied to the price after any other selected discounts.</p>
+						</div>
+					{/if}
+				</div>
+			</div>
 
 			{#each groups as group}
 				<div>

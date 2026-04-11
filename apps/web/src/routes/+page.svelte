@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getPriceColor, FUEL_COLORS } from '@fuelnsw/shared/utils/fuel-types';
-	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
+	import { calculateTotalDiscount } from '@fuelnsw/shared/utils/discounts';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
 	import { Capacitor } from '@capacitor/core';
 	import SearchBar from '$components/map/SearchBar.svelte';
@@ -23,7 +23,7 @@
 		getOpenOnly,
 		setOpenOnly
 	} from '$lib/preferences';
-	import { getSelectedDiscounts, onDiscountModalClose } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts, onDiscountModalClose, getGiftCardEnabledState, getGiftCardPercentState } from '$lib/discount-state.svelte';
 	import { getRemoveAds } from '$lib/preferences';
 
 
@@ -110,8 +110,8 @@
                 const isHighlighted = f === selectedFuelType;
                 const rowClass = isHighlighted ? 'fuel-row highlighted' : 'fuel-row';
                 const weight = isHighlighted ? 'font-weight:700' : 'font-weight:400';
-                if (isHighlighted && getSelectedDiscounts().length > 0) {
-                    const discount = calculateDiscount(station.properties.brand, f, getSelectedDiscounts(), station.properties.code);
+                if (isHighlighted && (getSelectedDiscounts().length > 0 || getGiftCardEnabledState())) {
+                    const discount = calculateTotalDiscount(station.properties.brand, f, getSelectedDiscounts(), station.properties.code, val, getGiftCardEnabledState() ? getGiftCardPercentState() : undefined);
                     if (discount.totalDiscount > 0) {
                         const discVal = val - discount.totalDiscount;
                         return `<div class="${rowClass}"><span class="fuel-dot" style="background:${color}"></span><span class="fuel-name">${escapeHtml(f)}</span><span class="fuel-price" style="${weight}"><span style="text-decoration:line-through;color:#94a3b8;font-weight:400;font-size:10px">${val.toFixed(1)}</span> ${discVal.toFixed(1)}</span></div>`;
@@ -215,8 +215,8 @@
 			.map((s) => {
 				const raw = parseFloat(String(s.properties[selectedFuelType] ?? ''));
 				if (isNaN(raw)) return NaN;
-				if (getSelectedDiscounts().length === 0) return raw;
-				const d = calculateDiscount(s.properties.brand, selectedFuelType, getSelectedDiscounts(), s.properties.code);
+				if (getSelectedDiscounts().length === 0 && !getGiftCardEnabledState()) return raw;
+				const d = calculateTotalDiscount(s.properties.brand, selectedFuelType, getSelectedDiscounts(), s.properties.code, raw, getGiftCardEnabledState() ? getGiftCardPercentState() : undefined);
 				return raw - d.totalDiscount;
 			})
 			.filter((p) => !isNaN(p));
@@ -313,8 +313,8 @@
 			const price = parseFloat(String(rawPrice ?? ''));
 			if (isNaN(price)) continue;
 
-			const discount = getSelectedDiscounts().length > 0
-				? calculateDiscount(station.properties.brand, selectedFuelType, getSelectedDiscounts(), station.properties.code)
+			const discount = getSelectedDiscounts().length > 0 || getGiftCardEnabledState()
+				? calculateTotalDiscount(station.properties.brand, selectedFuelType, getSelectedDiscounts(), station.properties.code, price, getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)
 				: { totalDiscount: 0, appliedDiscounts: [] as { id: string; amount: number; name: string }[] };
 			const discountedPrice = price - discount.totalDiscount;
 			const displayPrice = discount.totalDiscount > 0 ? discountedPrice : price;

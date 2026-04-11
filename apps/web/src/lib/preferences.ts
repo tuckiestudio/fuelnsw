@@ -6,7 +6,9 @@ const KEYS = {
 	removeAds: 'fuelscoutnsw_removeAds',
 	openOnly: 'fuelscoutnsw_openOnly',
 	navApp: 'fuelscoutnsw_navApp',
-	discounts: 'fuelscoutnsw_discounts'
+	discounts: 'fuelscoutnsw_discounts',
+	giftCardEnabled: 'fuelscoutnsw_giftCardEnabled',
+	giftCardPercent: 'fuelscoutnsw_giftCardPercent'
 } as const;
 
 function get<T>(key: string, fallback: T): T {
@@ -86,4 +88,20 @@ export function getDiscounts(): string[] {
 
 export function setDiscounts(ids: string[]): void {
 	set(KEYS.discounts, ids);
+}
+
+export function getGiftCardEnabled(): boolean {
+	return get(KEYS.giftCardEnabled, false);
+}
+
+export function setGiftCardEnabled(value: boolean): void {
+	set(KEYS.giftCardEnabled, value);
+}
+
+export function getGiftCardPercent(): number {
+	return get(KEYS.giftCardPercent, 5);
+}
+
+export function setGiftCardPercent(value: number): void {
+	set(KEYS.giftCardPercent, value);
 }

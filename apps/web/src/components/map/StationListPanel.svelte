@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getPriceColor } from '@fuelnsw/shared/utils/fuel-types';
-	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
+	import { calculateTotalDiscount } from '@fuelnsw/shared/utils/discounts';
 	import type { StationGeoJSON } from '@fuelnsw/shared/api/types';
-	import { getSelectedDiscounts } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts, getGiftCardEnabledState, getGiftCardPercentState } from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 	import { navigateTo } from '$lib/navigation';
 
@@ -55,7 +55,7 @@
 	function getDiscountedPrice(station: StationGeoJSON): number {
 		const raw = getPrice(station);
 		if (raw === Infinity) return Infinity;
-		const discount = calculateDiscount(station.properties.brand || '', fuelType, getSelectedDiscounts(), station.properties.code);
+		const discount = calculateTotalDiscount(station.properties.brand || '', fuelType, getSelectedDiscounts(), station.properties.code, raw === Infinity ? undefined : raw, getGiftCardEnabledState() ? getGiftCardPercentState() : undefined);
 		return Math.max(0, raw - discount.totalDiscount);
 	}
 
@@ -131,7 +131,7 @@
 			<div class="divide-y divide-gray-100">
 				{#each sortedStations as station, i}
 					{@const price = getPrice(station)}
-					{@const discount = calculateDiscount(station.properties.brand || '', fuelType, getSelectedDiscounts(), station.properties.code)}
+					{@const discount = calculateTotalDiscount(station.properties.brand || '', fuelType, getSelectedDiscounts(), station.properties.code, price === Infinity ? undefined : price, getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)}
 					{@const discountedPrice = price === Infinity ? price : Math.max(0, price - discount.totalDiscount)}
 					{@const dist = getDistance(station)}
 					{@const color = getPriceColor(discountedPrice, sortedStations.length > 1 ? Math.min(...sortedStations.map(getDiscountedPrice)) : discountedPrice, sortedStations.length > 1 ? Math.max(...sortedStations.map(getDiscountedPrice)) : discountedPrice)}

@@ -1,11 +1,13 @@
-import { getDiscounts, setDiscounts } from './preferences';
+import { getDiscounts, setDiscounts, getGiftCardEnabled, setGiftCardEnabled, getGiftCardPercent, setGiftCardPercent } from './preferences';
 
 let state = $state({
 	selectedDiscounts: getDiscounts() as string[],
-	showDiscountModal: false
+	showDiscountModal: false,
+	giftCardEnabled: getGiftCardEnabled(),
+	giftCardPercent: getGiftCardPercent(),
 });
 
-let discountCount = $derived(state.selectedDiscounts.length);
+let discountCount = $derived(state.selectedDiscounts.length + (state.giftCardEnabled ? 1 : 0));
 
 export function getSelectedDiscounts() {
 	return state.selectedDiscounts;
@@ -50,4 +52,23 @@ export function onDiscountModalClose(callback: () => void) {
 export function closeDiscountModal() {
 	state.showDiscountModal = false;
 	for (const cb of onCloseCallbacks) cb();
+}
+
+export function getGiftCardEnabledState() {
+	return state.giftCardEnabled;
+}
+
+export function getGiftCardPercentState() {
+	return state.giftCardPercent;
+}
+
+export function toggleGiftCard(enabled: boolean) {
+	state.giftCardEnabled = enabled;
+	setGiftCardEnabled(enabled);
+}
+
+export function updateGiftCardPercent(percent: number) {
+	const clamped = Math.max(1, Math.min(15, Math.round(percent)));
+	state.giftCardPercent = clamped;
+	setGiftCardPercent(clamped);
 }

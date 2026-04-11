@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { FUEL_OPTIONS } from '@fuelnsw/shared/utils/fuel-types';
-	import { calculateDiscount } from '@fuelnsw/shared/utils/discounts';
-	import { getSelectedDiscounts } from '$lib/discount-state.svelte';
+	import { calculateTotalDiscount } from '@fuelnsw/shared/utils/discounts';
+	import { getSelectedDiscounts, getGiftCardEnabledState, getGiftCardPercentState } from '$lib/discount-state.svelte';
 	import PriceChart from '$components/station/PriceChart.svelte';
 	import type { StationGeoJSON, OpeningHours } from '@fuelnsw/shared/api/types';
 	import { maybeShowInterstitial } from '$lib/ads';
@@ -260,7 +260,7 @@
 					{#each FUEL_OPTIONS as fuel}
 						{@const price = station.properties[fuel]}
 						{#if price && typeof price === 'string'}
-							{@const discount = calculateDiscount(station.properties.brand || '', fuel, getSelectedDiscounts(), station.properties.code)}
+							{@const discount = calculateTotalDiscount(station.properties.brand || '', fuel, getSelectedDiscounts(), station.properties.code, parseFloat(price), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)}
 							{@const discountedPrice = Math.max(0, parseFloat(price) - discount.totalDiscount)}
 							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
 								<span class="text-sm">{fuel}</span>
@@ -287,7 +287,7 @@
 			{#if getSelectedDiscounts().length > 0}
 				{@const sampleFuel = FUEL_OPTIONS.find((f) => station.properties[f] && typeof station.properties[f] === 'string')}
 				{#if sampleFuel}
-					{@const sampleDiscount = calculateDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts(), station.properties.code)}
+					{@const sampleDiscount = calculateTotalDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts(), station.properties.code, parseFloat(String(station.properties[sampleFuel] ?? '0')), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)}
 					{#if sampleDiscount.appliedDiscounts.length > 0}
 						<div class="px-2.5 py-2 bg-green-50 border border-green-100 rounded-lg">
 							<div class="text-xs font-medium text-green-800 mb-1.5">Applied Discounts</div>
