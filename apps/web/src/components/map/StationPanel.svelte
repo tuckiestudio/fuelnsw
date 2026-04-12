@@ -171,8 +171,10 @@
 	bind:this={sheetEl}
 >
 	{#if !adsRemoved}
-		<div class="shrink-0 bg-gray-50 border-b border-gray-200 overflow-hidden">
-			<AdSlot />
+		<div class="shrink-0 bg-gray-50 border-b border-gray-200" style="height:90px;position:relative">
+			<div class="absolute inset-0 overflow-hidden">
+				<AdSlot />
+			</div>
 		</div>
 	{/if}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
