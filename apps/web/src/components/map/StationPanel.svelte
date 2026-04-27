@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { FUEL_OPTIONS } from '@fuelnsw/shared/utils/fuel-types';
 	import { calculateTotalDiscount } from '@fuelnsw/shared/utils/discounts';
-	import { getSelectedDiscounts, getGiftCardEnabledState, getGiftCardPercentState } from '$lib/discount-state.svelte';
+	import { getSelectedDiscounts, getGiftCardEnabledState, getGiftCardPercentState, getGiftCardBrandsState } from '$lib/discount-state.svelte';
 	import PriceChart from '$components/station/PriceChart.svelte';
 	import type { StationGeoJSON, OpeningHours } from '@fuelnsw/shared/api/types';
 	import { maybeShowInterstitial } from '$lib/ads';
@@ -262,7 +262,7 @@
 					{#each FUEL_OPTIONS as fuel}
 						{@const price = station.properties[fuel]}
 						{#if price && typeof price === 'string'}
-							{@const discount = calculateTotalDiscount(station.properties.brand || '', fuel, getSelectedDiscounts(), station.properties.code, parseFloat(price), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)}
+							{@const discount = calculateTotalDiscount(station.properties.brand || '', fuel, getSelectedDiscounts(), station.properties.code, parseFloat(price), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined, getGiftCardBrandsState() ?? undefined)}
 							{@const discountedPrice = Math.max(0, parseFloat(price) - discount.totalDiscount)}
 							<div class="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 rounded-md">
 								<span class="text-sm">{fuel}</span>
@@ -289,7 +289,7 @@
 			{#if getSelectedDiscounts().length > 0}
 				{@const sampleFuel = FUEL_OPTIONS.find((f) => station.properties[f] && typeof station.properties[f] === 'string')}
 				{#if sampleFuel}
-					{@const sampleDiscount = calculateTotalDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts(), station.properties.code, parseFloat(String(station.properties[sampleFuel] ?? '0')), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined)}
+					{@const sampleDiscount = calculateTotalDiscount(station.properties.brand || '', sampleFuel, getSelectedDiscounts(), station.properties.code, parseFloat(String(station.properties[sampleFuel] ?? '0')), getGiftCardEnabledState() ? getGiftCardPercentState() : undefined, getGiftCardBrandsState() ?? undefined)}
 					{#if sampleDiscount.appliedDiscounts.length > 0}
 						<div class="px-2.5 py-2 bg-green-50 border border-green-100 rounded-lg">
 							<div class="text-xs font-medium text-green-800 mb-1.5">Applied Discounts</div>

@@ -1,10 +1,11 @@
-import { getDiscounts, setDiscounts, getGiftCardEnabled, setGiftCardEnabled, getGiftCardPercent, setGiftCardPercent } from './preferences';
+import { getDiscounts, setDiscounts, getGiftCardEnabled, setGiftCardEnabled, getGiftCardPercent, setGiftCardPercent, getGiftCardBrands, setGiftCardBrands } from './preferences';
 
 let state = $state({
 	selectedDiscounts: getDiscounts() as string[],
 	showDiscountModal: false,
 	giftCardEnabled: getGiftCardEnabled(),
 	giftCardPercent: getGiftCardPercent(),
+	giftCardBrands: getGiftCardBrands(),
 });
 
 let discountCount = $derived(state.selectedDiscounts.length + (state.giftCardEnabled ? 1 : 0));
@@ -71,4 +72,13 @@ export function updateGiftCardPercent(percent: number) {
 	const clamped = Math.max(1, Math.min(15, Math.round(percent)));
 	state.giftCardPercent = clamped;
 	setGiftCardPercent(clamped);
+}
+
+export function getGiftCardBrandsState(): string[] | null {
+	return state.giftCardBrands;
+}
+
+export function updateGiftCardBrands(brands: string[] | null) {
+	state.giftCardBrands = brands;
+	setGiftCardBrands(brands);
 }

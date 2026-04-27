@@ -2,6 +2,7 @@
 	import {
 		getCategoryGroups,
 		getLastVerifiedDate,
+		GIFT_CARD_BRAND_GROUPS,
 	} from '@fuelnsw/shared/utils/discounts';
 	import {
 		getSelectedDiscounts,
@@ -12,6 +13,8 @@
 		getGiftCardPercentState,
 		toggleGiftCard,
 		updateGiftCardPercent,
+		getGiftCardBrandsState,
+		updateGiftCardBrands,
 	} from '$lib/discount-state.svelte';
 	import { Capacitor } from '@capacitor/core';
 
@@ -35,6 +38,44 @@
 			month: 'short',
 			year: 'numeric',
 		});
+	}
+
+	function isAllBrands(): boolean {
+		return getGiftCardBrandsState() === null;
+	}
+
+	function toggleAllBrands(on: boolean) {
+		updateGiftCardBrands(on ? null : []);
+	}
+
+	function isGroupSelected(group: { brands: string[] }): boolean {
+		const brands = getGiftCardBrandsState();
+		if (brands === null) return false;
+		return group.brands.every((b) => brands.includes(b));
+	}
+
+	function isGroupPartiallySelected(group: { brands: string[] }): boolean {
+		const brands = getGiftCardBrandsState();
+		if (brands === null) return false;
+		return group.brands.some((b) => brands.includes(b)) && !group.brands.every((b) => brands.includes(b));
+	}
+
+	function toggleGroup(group: { brands: string[] }) {
+		const current = getGiftCardBrandsState() ?? [];
+		const allSelected = group.brands.every((b) => current.includes(b));
+		let next: string[];
+		if (allSelected) {
+			next = current.filter((b) => !group.brands.includes(b));
+		} else {
+			next = [...new Set([...current, ...group.brands])];
+		}
+		updateGiftCardBrands(next.length === 0 ? [] : next);
+	}
+
+	function getBrandBadgeText(): string {
+		const brands = getGiftCardBrandsState();
+		if (brands === null) return 'All brands';
+		return `${brands.length} ${brands.length === 1 ? 'brand' : 'brands'}`;
 	}
 </script>
 
@@ -90,7 +131,7 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2">
 								<span class="text-sm font-medium text-gray-900 truncate">Discount Gift Card</span>
-								<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">All stations</span>
+								<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">{getBrandBadgeText()}</span>
 							</div>
 							<p class="text-xs text-gray-500 mt-0.5">If you bought a discounted gift card (e.g. 5% off), enter the percentage discount here.</p>
 						</div>
@@ -116,8 +157,49 @@
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
 							</button>
 						</div>
-						<div class="ml-8 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-							<p class="text-xs text-amber-800"><span class="font-semibold">Applies to all stations.</span> Check that your gift card is accepted at the station before purchasing fuel. Percentage is applied to the price after any other selected discounts.</p>
+						<div class="ml-8 space-y-1.5">
+							<!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+							<button
+								class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left {isAllBrands() ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'}"
+								onclick={() => toggleAllBrands(!isAllBrands())}
+								role="switch"
+								aria-checked={isAllBrands()}
+								tabindex="0"
+							>
+								<div class="w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors {isAllBrands() ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}" style="width:18px;height:18px">
+									{#if isAllBrands()}
+										<svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+									{/if}
+								</div>
+								<span class="text-sm font-medium text-gray-900">Apply to all brands</span>
+							</button>
+							{#if !isAllBrands()}
+								{#each GIFT_CARD_BRAND_GROUPS as group}
+									{@const selected = isGroupSelected(group)}
+									{@const partial = isGroupPartiallySelected(group)}
+									<!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+									<button
+										class="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors text-left {selected ? 'bg-blue-50 border border-blue-200' : partial ? 'bg-blue-50/50 border border-blue-100' : 'hover:bg-gray-50 border border-transparent'}"
+										onclick={() => toggleGroup(group)}
+										role="switch"
+										aria-checked={selected}
+										tabindex="0"
+									>
+										<div class="shrink-0 transition-colors {selected ? 'text-blue-600' : partial ? 'text-blue-400' : 'text-gray-300'}">
+											<svg class="w-4 h-4" viewBox="0 0 18 18" fill="none">
+												<rect x="0.5" y="0.5" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.5" fill={selected ? 'currentColor' : 'none'}/>
+												{#if selected}
+													<path d="M5 9l2.5 2.5L13 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+												{:else if partial}
+													<rect x="4" y="7.5" width="10" height="3" rx="1" fill="currentColor"/>
+												{/if}
+											</svg>
+										</div>
+										<span class="text-sm text-gray-700">{group.label}</span>
+									</button>
+								{/each}
+								<p class="text-xs text-amber-700 mt-1 px-1">Select which brands accept your gift card. Percentage is applied to the price after any other selected discounts.</p>
+							{/if}
 						</div>
 					{/if}
 				</div>

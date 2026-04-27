@@ -612,6 +612,16 @@ export function calculateGiftCardDiscount(priceCpl: number, percent: number): nu
 	return Math.round((priceCpl * percent) / 100);
 }
 
+export interface GiftCardBrandGroup {
+	label: string;
+	brands: string[];
+}
+
+export const GIFT_CARD_BRAND_GROUPS: GiftCardBrandGroup[] = BRAND_CONFIGS.map((config) => ({
+	label: config.brands.join(' / '),
+	brands: config.brands,
+}));
+
 export function calculateTotalDiscount(
 	brand: string,
 	fuelType: string,
@@ -619,19 +629,23 @@ export function calculateTotalDiscount(
 	stationCode?: string,
 	priceCpl?: number,
 	giftCardPercent?: number,
+	giftCardBrands?: string[],
 ): DiscountResult {
 	const result = calculateDiscount(brand, fuelType, selectedDiscountIds, stationCode);
 
 	if (giftCardPercent && giftCardPercent > 0 && priceCpl && priceCpl > 0) {
-		const effectivePrice = priceCpl - result.totalDiscount;
-		const gcAmount = calculateGiftCardDiscount(effectivePrice, giftCardPercent);
-		if (gcAmount > 0) {
-			result.totalDiscount += gcAmount;
-			result.appliedDiscounts.push({
-				id: 'gift_card',
-				amount: gcAmount,
-				name: `Gift Card (${giftCardPercent}%)`,
-			});
+		const brandAllowed = !giftCardBrands || giftCardBrands.length === 0 || giftCardBrands.includes(brand);
+		if (brandAllowed) {
+			const effectivePrice = priceCpl - result.totalDiscount;
+			const gcAmount = calculateGiftCardDiscount(effectivePrice, giftCardPercent);
+			if (gcAmount > 0) {
+				result.totalDiscount += gcAmount;
+				result.appliedDiscounts.push({
+					id: 'gift_card',
+					amount: gcAmount,
+					name: `Gift Card (${giftCardPercent}%)`,
+				});
+			}
 		}
 	}
 
